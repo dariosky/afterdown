@@ -28,16 +28,31 @@ class FileSorter(object):
         root = os.path.abspath(self.config['source'])
         assert os.path.isdir(root), "Cannot find the defined source %s" % root
 
-        print
         for foldername, dirnames, filenames in os.walk(root, followlinks=True):
-            print root
+            print foldername
             for filename in filenames:
+                fullpath = os.path.join(foldername, filename)
                 filepath = os.path.join(foldername[len(root) + 1:], filename)
                 print filepath
-                # TODO: Check the file is not in use
-
-                break
+                candidate = dict(  # each file found is a possible candidate...
+                                   filepath=filepath,  # with a path relative to the source
+                                   fullpath=fullpath,  # the fullpath, needed if the rule wants to access the file
+                                   # other eventual things will be added from the rules when needed...
+                                   # possible candidates are: extension, filesize, xmp tags or things like that
+                                   )
+                matches = []
+                for rule in self.config["rules"]:
+                    if rule.match(candidate):
+                        matches.append(rule)
+                if matches:
+                    print "It matches %d rules: %s" % (len(matches), matches)
+                    # TODO: sort by priority, if there is only one rule with top priority apply it
+                else:
+                    print "Does not match"
             break
+            # TODO: Check the file is not in use
+            print
+
 
     def read_config(self):
         config = json.load(file(self.config_file))  # read the config form json

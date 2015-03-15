@@ -25,3 +25,16 @@ def test_duplicate_removal():
     child_rule = Rule({'type': "video", "extensions": ["FOO"]},
                       previous_rules={"video": Rule({"extensions": ["foo", "bar"], })})
     assert len(child_rule.extensions) == 2, "Seems extensions duplicates are not removed"
+
+
+def test_sizes():
+    rule = Rule({"size": "10"})
+    assert rule.size == ("=", 10)
+    rule = Rule({"size": ">100"})
+    assert rule.size == (">", 100)
+    rule = Rule({"size": "<=1000"})
+    assert rule.size == ("<=", 1000)
+    rule = Rule({"size": "=1kB"})
+    assert rule.size == ("=", 1024)
+    rule = Rule({"size": ">=1M"})
+    assert rule.size == (">=", 1024 * 1024)

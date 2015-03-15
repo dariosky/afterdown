@@ -26,7 +26,7 @@
     {
       "match": "sample",
       "action": "delete",
-      "priority": 1
+      "priority": 0
     },
     {
       "size": ">500MB",
@@ -39,7 +39,8 @@
       "extensions": [
         "avi",
         "mp4",
-        "mkv"
+        "mkv",
+        "mov"
       ]
     },
     "music": {
@@ -49,7 +50,7 @@
         "ogg"
       ]
     },
-    "subtitles":{
+    "subtitles": {
       "extensions": [
         "srt",
         "sub"
