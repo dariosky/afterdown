@@ -1,5 +1,5 @@
 import pytest
-from filesorter import Rule
+from core.rules import Rule
 
 if __name__ == '__main__':
     pytest.main()
