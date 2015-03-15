@@ -29,24 +29,30 @@
       "priority": 1
     },
     {
-      "size>": 500,
+      "size": ">500MB",
       "type": "Video",
       "to": "Films"
     }
   ],
   "types": {
     "Video": {
-      "ext": [
+      "extensions": [
         "avi",
         "mp4",
         "mkv"
       ]
     },
     "music": {
-      "ext": [
+      "extensions": [
         "mp3",
         "wma",
         "ogg"
+      ]
+    },
+    "subtitles":{
+      "extensions": [
+        "srt",
+        "sub"
       ]
     }
   }
