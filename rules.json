@@ -1,0 +1,53 @@
+{
+  "source": "test/folder_to_monitor",
+  "target": "test/target_folder",
+  "rules": [
+    {
+      "match": "stalker",
+      "types": [
+        "Video",
+        "subtitles"
+      ],
+      "to": "Serie/Stalker",
+      "seasonSplit": true
+    },
+    {
+      "match": "Big Bang Theory",
+      "to": "Serie/Big Bang Theory"
+    },
+    {
+      "match": "House of cards",
+      "to": "Serie/House of Cards"
+    },
+    {
+      "match": "Person of Interest",
+      "to": "Serie/Person of Interest"
+    },
+    {
+      "match": "sample",
+      "action": "delete",
+      "priority": 1
+    },
+    {
+      "size>": 500,
+      "type": "Video",
+      "to": "Films"
+    }
+  ],
+  "types": {
+    "Video": {
+      "ext": [
+        "avi",
+        "mp4",
+        "mkv"
+      ]
+    },
+    "music": {
+      "ext": [
+        "mp3",
+        "wma",
+        "ogg"
+      ]
+    }
+  }
+}
