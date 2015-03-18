@@ -12,8 +12,8 @@ def test_default_rule():
 
 
 def test_singular_forms():
-    child_rule = Rule({'type': "video", "match": "child-filter"},
-                      previous_rules={"video": Rule({"extension": "avi", "match": "parent-filter"})})
+    config = {'types': {"video": Rule({"extension": "avi", "match": "parent-filter"})}}
+    child_rule = Rule({'type': "video", "match": "child-filter"}, config=config)
     assert "video" in child_rule.types, "Singular forms doesn't work for types."
     # test inheritance
     assert "avi" in child_rule.extensions
@@ -22,8 +22,8 @@ def test_singular_forms():
 
 
 def test_duplicate_removal():
-    child_rule = Rule({'type': "video", "extensions": ["FOO"]},
-                      previous_rules={"video": Rule({"extensions": ["foo", "bar"], })})
+    config = {'types': {"video": Rule({"extensions": ["foo", "bar"], })}}
+    child_rule = Rule({'type': "video", "extensions": ["FOO"]}, config=config)
     assert len(child_rule.extensions) == 2, "Seems extensions duplicates are not removed"
 
 

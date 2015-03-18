@@ -28,9 +28,12 @@ class FileSorter(object):
         root = os.path.abspath(self.config['source'])
         assert os.path.isdir(root), "Cannot find the defined source %s" % root
 
+        counters = dict(tot=0, one=0, unsure=0, none=0, applied=0)  # a counter for the possible cases
+
         for foldername, dirnames, filenames in os.walk(root, followlinks=True):
             print foldername
             for filename in filenames:
+                counters['tot'] += 1
                 fullpath = os.path.join(foldername, filename)
                 filepath = os.path.join(foldername[len(root) + 1:], filename)
                 print filepath
@@ -42,16 +45,41 @@ class FileSorter(object):
                                    )
                 matches = []
                 for rule in self.config["rules"]:
-                    if rule.match(candidate):
-                        matches.append(rule)
+                    confidence = rule.match(candidate)
+                    if confidence:
+                        matches.append((confidence, rule))
                 if matches:
-                    print "It matches %d rules: %s" % (len(matches), matches)
-                    # TODO: sort by priority, if there is only one rule with top priority apply it
+                    # print "It matches %d rules: %s" % (len(matches), matches)
+                    if len(matches) == 1:
+                        counters['one'] += 1
+                    else:
+                        counters['many'] += 1
+
+                    # sort by confidence
+                    rules_by_confidence = {}
+                    max_confidence = 0
+                    for confidence, rule in matches:
+                        # group by confidence
+                        rules = rules_by_confidence.get(confidence, [])
+                        rules.append(rule)
+                        rules_by_confidence[confidence] = rules
+                        if confidence > max_confidence:
+                            max_confidence = confidence
+
+                    # if there is only one rule with top confidence apply it
+                    if len(rules_by_confidence[max_confidence]) == 1:
+                        rule = rules_by_confidence[max_confidence][0]
+                        done = rule.apply(candidate, commit=True)
+                        counters['applied'] += 1
+                    else:
+                        counters['unsure'] += 1
                 else:
                     print "Does not match"
-            break
+                    counters['none'] += 1
+            # break  # just one folder test
             # TODO: Check the file is not in use
             print
+        print "we had {tot} files: {applied} actions taken, {unsure} uncertain, {none} unrecognized.".format(**counters)
 
 
     def read_config(self):
@@ -61,19 +89,19 @@ class FileSorter(object):
 
     def prepare_config(self, config):
         assert "source" in config, "The configuration should contain a valid 'source'"
-        assert "rules" in config, "The configuration should contain some 'rules'"
-        types = {}
+        assert "rules" in config, "The configuration should contain 'rules'"
         if "types" in config:
+            types_definition = config['types']
+            config['types'] = {}
             # change config.types to a list of rules
-            for denormalized_name, rule_def in config['types'].items():
-                rule = Rule(rule_def, name=denormalized_name, previous_rules=types)
+            for denormalized_name, rule_def in types_definition.items():
+                rule = Rule(rule_def, name=denormalized_name, config=config)
                 name = rule.name  # the rule does the normalization
-                assert name not in types, "Multiple file type definition for %s" % name
-                types[name] = rule
+                assert name not in config['types'], "Multiple file type definition for %s" % name
+                config['types'][name] = rule
                 # print pprint(types)
 
-        rules = [Rule(rule_def, previous_rules=types) for rule_def in config["rules"]]
-        config["rules"] = rules
+        config["rules"] = [Rule(rule_def, config=config) for rule_def in config["rules"]]
 
         # pprint(config)
         return config

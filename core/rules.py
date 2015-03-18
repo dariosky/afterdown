@@ -1,6 +1,8 @@
 import os
+import shutil
 from core.constants import OPERATORS_MAP
 import logging
+from core.season_info import get_episode_infos
 
 logger = logging.getLogger("filesorter.rules")
 
@@ -24,11 +26,13 @@ class Rule(object):
     ACTION_DELETE = "DELETE"  # delete the file, use with caution
 
     # define the possible fields
-    fields = ['extensions', 'size', 'priority', 'season_split', 'action', 'to', 'matches', 'name']
+    fields = ['extensions', 'size', 'priority', 'seasonSplit', 'action', 'to', 'matches', 'name']
 
-    def __init__(self, rule_def=None, name=None, previous_rules=None):
-        if not previous_rules:
+    def __init__(self, rule_def=None, name=None, config=None):
+        if config is None:
             previous_rules = {}
+        else:
+            previous_rules = config['types']
         if rule_def is None:
             rule_def = {}
 
@@ -36,12 +40,14 @@ class Rule(object):
         self.extensions = []
         self.size = None
         self.priority = 50
-        self.season_split = False
+        self.seasonSplit = False
         self.action = self.ACTION_MOVE
         self.to = None
         self.matches = []
         self.types = []
         self.name = None
+
+        self.config = config
 
         # add the singular forms, that are sometime more practical
         for singular_form, plural_form in (('match', 'matches'),
@@ -188,4 +194,32 @@ class Rule(object):
                 return False
         return confidence
 
+    def apply(self, candidate, commit=True):
+        # print "{action} {filepath} {to}".format(action=self.action, filepath=candidate['filepath'], to=[self.to])
+        result = None
+        if self.action == self.ACTION_DELETE:
+            result = (self.ACTION_DELETE, candidate)
+            if commit:
+                logger.info("Deleting %s" % candidate['fullpath'])
+                os.remove(candidate['fullpath'])
+        elif self.action == self.ACTION_MOVE:
+            assert self.to, "In move action you have to specify the destination with the 'to' parameter."
+            to = self.to
+            if self.seasonSplit:
+                season, episode = get_episode_infos(candidate['filepath'])
+                if season:
+                    to = os.path.join(to, "S%s" % season)
+            result = self.ACTION_MOVE, (candidate, to)
+            assert self.config and self.config[
+                'target'], "Applying needs that rules have a configuration, with its target"
+
+            if commit:
+                full_target = os.path.join(self.config['target'], to)
+                if not os.path.exists(full_target):
+                    print "Creating folder %s" % full_target
+                    os.makedirs(full_target)  # ensure the target folder is there
+                shutil.move(candidate['fullpath'], full_target)
+        return result
+
+# TODO: keep a list of folder from wich we removed or moved files, and at the end delete them if they are empty
 # TODO: the size rule, ad example moving films if their size is >500M, should move also the subtitles with same name?
