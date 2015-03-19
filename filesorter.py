@@ -31,12 +31,12 @@ class FileSorter(object):
         counters = dict(tot=0, one=0, unsure=0, none=0, applied=0)  # a counter for the possible cases
 
         for foldername, dirnames, filenames in os.walk(root, followlinks=True):
-            print foldername
+            # print foldername[len(root) + 1:] or "/"
             for filename in filenames:
                 counters['tot'] += 1
                 fullpath = os.path.join(foldername, filename)
                 filepath = os.path.join(foldername[len(root) + 1:], filename)
-                print filepath
+                # print filepath
                 candidate = dict(  # each file found is a possible candidate...
                                    filepath=filepath,  # with a path relative to the source
                                    fullpath=fullpath,  # the fullpath, needed if the rule wants to access the file
@@ -46,14 +46,12 @@ class FileSorter(object):
                 matches = []
                 for rule in self.config["rules"]:
                     confidence = rule.match(candidate)
-                    if confidence:
+                    if confidence is not False:
                         matches.append((confidence, rule))
                 if matches:
                     # print "It matches %d rules: %s" % (len(matches), matches)
                     if len(matches) == 1:
                         counters['one'] += 1
-                    else:
-                        counters['many'] += 1
 
                     # sort by confidence
                     rules_by_confidence = {}
@@ -69,18 +67,19 @@ class FileSorter(object):
                     # if there is only one rule with top confidence apply it
                     if len(rules_by_confidence[max_confidence]) == 1:
                         rule = rules_by_confidence[max_confidence][0]
-                        done = rule.apply(candidate, commit=True)
+                        done = rule.apply(candidate, commit=False)
+                        print done
                         counters['applied'] += 1
                     else:
                         counters['unsure'] += 1
+                        print "UNSURE: %s matches %s" % (filepath, matches)
                 else:
-                    print "Does not match"
+                    print filepath, "Does not match"
                     counters['none'] += 1
-            # break  # just one folder test
-            # TODO: Check the file is not in use
-            print
+                    # break  # just one folder test
+                    # TODO: Check the file is not in use
+                    # print
         print "we had {tot} files: {applied} actions taken, {unsure} uncertain, {none} unrecognized.".format(**counters)
-
 
     def read_config(self):
         config = json.load(file(self.config_file))  # read the config form json

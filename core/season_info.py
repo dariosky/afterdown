@@ -8,7 +8,6 @@ RE_THREE_NUMBERS = re.compile(r'(\d)(?:[E]|)(\d{2,})', re.IGNORECASE | re.VERBOS
 
 def get_episode_infos(filepath):
     filename = os.path.basename(filepath)
-    print filename
     for regex in [
         RE_GET_SEASON_N_EPISODE,
         RE_INITIAL_EPISODE,

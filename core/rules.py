@@ -2,6 +2,7 @@ import os
 import shutil
 from core.constants import OPERATORS_MAP
 import logging
+from core.match_string import try_match_strings
 from core.season_info import get_episode_infos
 
 logger = logging.getLogger("filesorter.rules")
@@ -24,6 +25,7 @@ class Rule(object):
 
     ACTION_MOVE = "MOVE"  # move the file to a position
     ACTION_DELETE = "DELETE"  # delete the file, use with caution
+    ACTION_KEEP = "KEEP"  # don't do nothing, just keep the file there
 
     # define the possible fields
     fields = ['extensions', 'size', 'priority', 'seasonSplit', 'action', 'to', 'matches', 'name']
@@ -76,9 +78,14 @@ class Rule(object):
 
         if self.action == "delete":
             self.action = self.ACTION_DELETE
-        if self.action == "move":
+        elif self.action == "move":
             self.action = self.ACTION_MOVE
-        assert self.action in (self.ACTION_MOVE, self.ACTION_DELETE), "Unknown action %s" % self.action
+        elif self.action == "keep":
+            self.action = self.ACTION_KEEP
+
+        assert self.action in (
+            self.ACTION_MOVE, self.ACTION_DELETE, self.ACTION_KEEP
+        ), "Unknown action %s" % self.action
         self.add_field('name', name)
 
     def __repr__(self):
@@ -167,16 +174,10 @@ class Rule(object):
                 logger.debug("Rejected rule %s for extension" % self)
                 return False
         if self.matches:
-            match = False
-            # TODO: check the match with various level of confidency, degrading the priority
-            # an exact contain match gives full priority, a contain ignoring [\s\.-_] gives 20% less confidence...
-            filepath_normalized = candidate["filepath"].lower()
-            for match_string in self.matches:
-                if match_string in filepath_normalized:
-                    match = True
-                    break
-            if not match:
-                logger.debug("Rejected rule %s doesn't match." % self.matches)
+            confidence = try_match_strings(candidate=candidate,
+                                           matches=self.matches,
+                                           max_priority=self.priority)
+            if confidence is False:  # no string match, stop here
                 return False
         if self.size is not None:
             if "size" not in candidate:
@@ -198,10 +199,13 @@ class Rule(object):
         # print "{action} {filepath} {to}".format(action=self.action, filepath=candidate['filepath'], to=[self.to])
         result = None
         if self.action == self.ACTION_DELETE:
-            result = (self.ACTION_DELETE, candidate)
+            result = (self.action, candidate)
             if commit:
                 logger.info("Deleting %s" % candidate['fullpath'])
                 os.remove(candidate['fullpath'])
+        elif self.action == self.ACTION_KEEP:
+            result = (self.action, candidate)
+            logger.info("Keeping %s" % candidate['fullpath'])
         elif self.action == self.ACTION_MOVE:
             assert self.to, "In move action you have to specify the destination with the 'to' parameter."
             to = self.to
@@ -209,14 +213,14 @@ class Rule(object):
                 season, episode = get_episode_infos(candidate['filepath'])
                 if season:
                     to = os.path.join(to, "S%s" % season)
-            result = self.ACTION_MOVE, (candidate, to)
+            result = self.action, (candidate, to)
             assert self.config and self.config[
                 'target'], "Applying needs that rules have a configuration, with its target"
 
             if commit:
                 full_target = os.path.join(self.config['target'], to)
                 if not os.path.exists(full_target):
-                    print "Creating folder %s" % full_target
+                    logger.info("Creating folder %s" % full_target)
                     os.makedirs(full_target)  # ensure the target folder is there
                 shutil.move(candidate['fullpath'], full_target)
         return result

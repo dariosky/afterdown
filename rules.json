@@ -4,29 +4,38 @@
   "rules": [
     {
       "match": "stalker",
-      "types": [
-        "Video",
-        "subtitles"
-      ],
-      "to": "Serie/Stalker",
-      "seasonSplit": true
+      "type": "Serie",
+      "to": "Serie/Stalker"
     },
     {
       "match": "Big Bang Theory",
+      "type": "Serie",
       "to": "Serie/Big Bang Theory"
     },
     {
       "match": "House of cards",
+      "type": "Serie",
       "to": "Serie/House of Cards"
     },
     {
       "match": "Person of Interest",
+      "type": "Serie",
       "to": "Serie/Person of Interest"
     },
     {
       "match": "sample",
       "action": "delete",
+      "size": "<100M",
+      "priority": 60
+    },
+    {
+      "action": "delete",
       "priority": 0
+    },
+    {
+      "match": "put_in_folders.bat",
+      "action": "keep",
+      "priority": 100
     },
     {
       "size": ">500MB",
@@ -54,6 +63,13 @@
       "extensions": [
         "srt",
         "sub"
+      ]
+    },
+    "serie": {
+      "seasonSplit": true,
+      "types": [
+        "video",
+        "subtitles"
       ]
     }
   }
