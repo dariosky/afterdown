@@ -24,12 +24,11 @@
     },
     {
       "match": "sample",
-      "action": "delete",
-      "size": "<100M",
+      "type": "fanta_delete",
       "priority": 60
     },
     {
-      "action": "delete",
+      "type": "fanta_delete",
       "priority": 0
     },
     {
@@ -71,6 +70,12 @@
         "video",
         "subtitles"
       ]
+    },
+    "fanta_delete": {
+      "action": "move",
+      "to": "_trash",
+      "priority": 0,
+      "overwrite": "rename"
     }
   }
 }

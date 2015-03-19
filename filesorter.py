@@ -5,7 +5,6 @@ import os
 
 from core.rules import Rule
 
-
 print "Filesorter 0.031415"
 print "Copyright (C) 2015  Dario Varotto\n"
 
@@ -67,7 +66,7 @@ class FileSorter(object):
                     # if there is only one rule with top confidence apply it
                     if len(rules_by_confidence[max_confidence]) == 1:
                         rule = rules_by_confidence[max_confidence][0]
-                        done = rule.apply(candidate, commit=False)
+                        done = rule.apply(candidate, commit=True)
                         print done
                         counters['applied'] += 1
                     else:

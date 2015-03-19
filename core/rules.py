@@ -1,4 +1,5 @@
 import os
+import random
 import shutil
 from core.constants import OPERATORS_MAP
 import logging
@@ -28,7 +29,8 @@ class Rule(object):
     ACTION_KEEP = "KEEP"  # don't do nothing, just keep the file there
 
     # define the possible fields
-    fields = ['extensions', 'size', 'priority', 'seasonSplit', 'action', 'to', 'matches', 'name']
+    fields = ['extensions', 'size', 'priority', 'seasonSplit', 'action', 'to', 'matches', 'name',
+              'overwrite']
 
     def __init__(self, rule_def=None, name=None, config=None):
         if config is None:
@@ -48,6 +50,7 @@ class Rule(object):
         self.matches = []
         self.types = []
         self.name = None
+        self.overwrite = "skip"
 
         self.config = config
 
@@ -157,6 +160,10 @@ class Rule(object):
         elif key == "matches":
             # TODO: allow matches with regex, for example using a string between slashed: /\d{2} - anim.*/
             return value.lower()
+        elif key == "overwrite":
+            value = value.lower()
+            assert value in ("rename", "skip", "overwrite")
+            return value
         else:
             return value
 
@@ -213,7 +220,6 @@ class Rule(object):
                 season, episode = get_episode_infos(candidate['filepath'])
                 if season:
                     to = os.path.join(to, "S%s" % season)
-            result = self.action, (candidate, to)
             assert self.config and self.config[
                 'target'], "Applying needs that rules have a configuration, with its target"
 
@@ -222,7 +228,25 @@ class Rule(object):
                 if not os.path.exists(full_target):
                     logger.info("Creating folder %s" % full_target)
                     os.makedirs(full_target)  # ensure the target folder is there
-                shutil.move(candidate['fullpath'], full_target)
+                filename = os.path.basename(candidate['fullpath'])
+                while os.path.isfile(os.path.join(full_target, filename)):
+                    logger.warning("File %s already exist on %s" % (filename, to))
+                    if self.overwrite == "skip":
+                        logger.warning("Skipping this file")
+                        result = (self.ACTION_KEEP, candidate)
+                        return result
+                    elif self.overwrite == "overwrite":
+                        logger.info("Overwriting")
+                        break
+                    elif self.overwrite == "rename":
+                        filename = os.path.basename(candidate['fullpath'])
+                        name, ext = os.path.splitext(filename)
+                        filename = name + "_%s" % str(random.randint(0, 10000)).zfill(5) + ext
+                    else:
+                        raise Exception("Invalid overwrite value: %s" % self.overwrite)
+                full_target_path = os.path.join(full_target, filename)
+                shutil.move(candidate['fullpath'], full_target_path)
+                result = self.action, (candidate, full_target_path)
         return result
 
 # TODO: keep a list of folder from wich we removed or moved files, and at the end delete them if they are empty
