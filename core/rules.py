@@ -1,7 +1,7 @@
 import os
 import random
 import shutil
-from core.constants import OPERATORS_MAP
+from core.constants import OPERATORS_MAP, AttrDict
 import logging
 from core.match_string import try_match_strings
 from core.season_info import get_episode_infos
@@ -204,14 +204,14 @@ class Rule(object):
 
     def apply(self, candidate, commit=True):
         # print "{action} {filepath} {to}".format(action=self.action, filepath=candidate['filepath'], to=[self.to])
-        result = None
+        result = AttrDict()  # the object I will return
         if self.action == self.ACTION_DELETE:
-            result = (self.action, candidate)
+            result.update(dict(action=self.action, candidate=candidate, filepath=candidate['filepath']))
             if commit:
                 logger.info("Deleting %s" % candidate['fullpath'])
                 os.remove(candidate['fullpath'])
         elif self.action == self.ACTION_KEEP:
-            result = (self.action, candidate)
+            result.update(dict(action=self.action, candidate=candidate, filepath=candidate['filepath']))
             logger.info("Keeping %s" % candidate['fullpath'])
         elif self.action == self.ACTION_MOVE:
             assert self.to, "In move action you have to specify the destination with the 'to' parameter."
@@ -223,17 +223,19 @@ class Rule(object):
             assert self.config and self.config[
                 'target'], "Applying needs that rules have a configuration, with its target"
 
+            full_target = os.path.join(self.config['target'], to)
+            filename = os.path.basename(candidate['fullpath'])
+            result.update(dict(action=self.action,
+                               candidate=candidate, filepath=candidate['filepath']))
             if commit:
-                full_target = os.path.join(self.config['target'], to)
                 if not os.path.exists(full_target):
                     logger.info("Creating folder %s" % full_target)
                     os.makedirs(full_target)  # ensure the target folder is there
-                filename = os.path.basename(candidate['fullpath'])
                 while os.path.isfile(os.path.join(full_target, filename)):
                     logger.warning("File %s already exist on %s" % (filename, to))
                     if self.overwrite == "skip":
                         logger.warning("Skipping this file")
-                        result = (self.ACTION_KEEP, candidate)
+                        result['action'] = self.ACTION_KEEP
                         return result
                     elif self.overwrite == "overwrite":
                         logger.info("Overwriting")
@@ -246,8 +248,11 @@ class Rule(object):
                         raise Exception("Invalid overwrite value: %s" % self.overwrite)
                 full_target_path = os.path.join(full_target, filename)
                 shutil.move(candidate['fullpath'], full_target_path)
-                result = self.action, (candidate, full_target_path)
+            else:
+                # no commit so return the name as the file is not on target
+                filename = os.path.basename(candidate['fullpath'])
+                full_target_path = os.path.join(full_target, filename)
+            result['target_fullpath'] = full_target_path
         return result
 
-# TODO: keep a list of folder from wich we removed or moved files, and at the end delete them if they are empty
-# TODO: the size rule, ad example moving films if their size is >500M, should move also the subtitles with same name?
+# LATER: the size rule, ad example moving films if their size is >500M, should move also the subtitles with same name?

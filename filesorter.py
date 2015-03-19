@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # coding: utf-8
 import json
+import logging
 import os
 
 from core.rules import Rule
@@ -9,6 +10,9 @@ print "Filesorter 0.031415"
 print "Copyright (C) 2015  Dario Varotto\n"
 
 PROJECT_PATH = os.path.dirname(__file__)
+COMMIT = True
+
+logger = logging.getLogger("filesorter.rules")
 
 
 class FileSorter(object):
@@ -19,6 +23,7 @@ class FileSorter(object):
             raise Exception("Config file %s not found." % config_file)
         self.config_file = config_file
         self.config = None
+        self.touched_folders = set()  # the folders on source that have been touched (by a MOVE or DELETE)
 
     def run(self):
         if self.config is None:
@@ -66,7 +71,11 @@ class FileSorter(object):
                     # if there is only one rule with top confidence apply it
                     if len(rules_by_confidence[max_confidence]) == 1:
                         rule = rules_by_confidence[max_confidence][0]
-                        done = rule.apply(candidate, commit=True)
+                        done = rule.apply(candidate, commit=COMMIT)
+                        if done.action in (Rule.ACTION_DELETE, Rule.ACTION_MOVE):
+                            target_file = done.filepath
+                            touched_folder = os.path.dirname(target_file)
+                            self.touched_folders.add(touched_folder)
                         print done
                         counters['applied'] += 1
                     else:
@@ -76,8 +85,11 @@ class FileSorter(object):
                     print filepath, "Does not match"
                     counters['none'] += 1
                     # break  # just one folder test
-                    # TODO: Check the file is not in use
+                    # LATER: Check the file is not in use
                     # print
+        if self.touched_folders and self.deleteEmptyFolders:
+            print "Touched folders", self.touched_folders
+            self.do_delete_touched_folders()
         print "we had {tot} files: {applied} actions taken, {unsure} uncertain, {none} unrecognized.".format(**counters)
 
     def read_config(self):
@@ -88,6 +100,8 @@ class FileSorter(object):
     def prepare_config(self, config):
         assert "source" in config, "The configuration should contain a valid 'source'"
         assert "rules" in config, "The configuration should contain 'rules'"
+        # delete all touched empty folders (and parents) when empty
+        self.deleteEmptyFolders = config.get('deleteEmptyFolders', True) and True or False
         if "types" in config:
             types_definition = config['types']
             config['types'] = {}
@@ -104,6 +118,24 @@ class FileSorter(object):
         # pprint(config)
         return config
 
+    def do_delete_touched_folders(self):
+        """
+        Delete all empty touched folder recurring on ancestor until root
+        """
+        root = os.path.abspath(self.config['source'])
+        while self.touched_folders:
+            folder = self.touched_folders.pop()
+            folder_path = os.path.join(root, folder)
+            if folder and os.path.isdir(folder_path) \
+                    and folder_path.startswith(root) and folder_path != root \
+                    and not os.listdir(folder_path):
+                logger.info("Deleting empty folder:", folder_path)
+                os.rmdir(folder_path)
+                if folder_path != root:
+                    parent_folder = os.path.dirname(folder_path)
+                    self.touched_folders.add(parent_folder)
+
+# DONE: keep a list of folder from wich we removed or moved files, and at the end delete them if they are empty
 
 if __name__ == '__main__':
     sorter = FileSorter()
