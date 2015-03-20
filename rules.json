@@ -77,5 +77,9 @@
       "priority": 0,
       "overwrite": "rename"
     }
+  },
+  "kodi":{
+    "host": "localhost",
+    "request_update": true
   }
 }

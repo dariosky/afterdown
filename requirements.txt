@@ -1,2 +1,5 @@
 # testing
 pytest
+
+# for kodi sync
+requests

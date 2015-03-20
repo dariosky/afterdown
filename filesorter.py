@@ -4,6 +4,11 @@ import json
 import logging
 import os
 
+try:
+    import requests
+except ImportError:
+    requests = None
+
 from core.rules import Rule
 
 print "Filesorter 0.031415"
@@ -23,6 +28,7 @@ class FileSorter(object):
             raise Exception("Config file %s not found." % config_file)
         self.config_file = config_file
         self.config = None
+        self.deleteEmptyFolders = True
         self.touched_folders = set()  # the folders on source that have been touched (by a MOVE or DELETE)
 
     def run(self):
@@ -33,6 +39,7 @@ class FileSorter(object):
         assert os.path.isdir(root), "Cannot find the defined source %s" % root
 
         counters = dict(tot=0, one=0, unsure=0, none=0, applied=0)  # a counter for the possible cases
+        actions = []
 
         for foldername, dirnames, filenames in os.walk(root, followlinks=True):
             # print foldername[len(root) + 1:] or "/"
@@ -77,6 +84,7 @@ class FileSorter(object):
                             touched_folder = os.path.dirname(target_file)
                             self.touched_folders.add(touched_folder)
                         print done
+                        actions.append(done)
                         counters['applied'] += 1
                     else:
                         counters['unsure'] += 1
@@ -87,6 +95,21 @@ class FileSorter(object):
                     # break  # just one folder test
                     # LATER: Check the file is not in use
                     # print
+        moved_actions = filter(lambda d: d.action == Rule.ACTION_MOVE, actions)
+        if moved_actions and self.config.get("kodi", {}).get('request_update', False) and COMMIT:
+            if not requests:
+                logger.error("requests is needed to syncronize with Kodi.")
+            else:
+                kodi_host = self.config['kodi'].get('host', 'localhost')
+                logger.info("Something changed on target folder, telling Kodi to update video library.")
+                try:
+                    requests.get('http://{kodi_host}/jsonrpc?request={"jsonrpc":"2.0","method":"VideoLibrary.Scan"}'.format(
+                        kodi_host=kodi_host
+                    ))
+                except Exception as e:
+                    logger.error("Errors when trying to communicate with Kodi, please do the Video Sync manually.")
+                    logger.error("%s" % e)
+
         if self.touched_folders and self.deleteEmptyFolders:
             print "Touched folders", self.touched_folders
             self.do_delete_touched_folders()
@@ -114,7 +137,10 @@ class FileSorter(object):
                 # print pprint(types)
 
         config["rules"] = [Rule(rule_def, config=config) for rule_def in config["rules"]]
-
+        # defaults for kodi configuration
+        if "kodi" not in config:
+            config["kodi"] = dict(host="localhost",
+                                  request_update=False)
         # pprint(config)
         return config
 
@@ -136,6 +162,8 @@ class FileSorter(object):
                     self.touched_folders.add(parent_folder)
 
 # DONE: keep a list of folder from wich we removed or moved files, and at the end delete them if they are empty
+# TODO: handle calling parameters to become an usable command getargs
+# TODO: Send mail of the activities
 
 if __name__ == '__main__':
     sorter = FileSorter()
