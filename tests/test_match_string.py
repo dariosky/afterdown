@@ -1,4 +1,4 @@
-from core.match_string import try_match_strings, remove_special_chars
+from core.matching import try_match_strings, remove_special_chars
 
 
 def test_remove_special_chars():

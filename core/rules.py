@@ -3,10 +3,22 @@ import random
 import shutil
 from core.constants import OPERATORS_MAP, AttrDict
 import logging
-from core.match_string import try_match_strings
+from core.matching import try_match_strings
 from core.season_info import get_episode_infos
 
 logger = logging.getLogger("filesorter.rules")
+
+
+class ApplyResult(AttrDict):
+    action = None
+    filepath = None
+    fullpath = None
+
+    def __unicode__(self):
+        return u"{action}: {filepath}".format(action=self.action, filepath=self.filepath)
+
+    def __str__(self):
+        return str(self.__unicode__())
 
 
 class Rule(object):
@@ -30,7 +42,7 @@ class Rule(object):
 
     # define the possible fields
     fields = ['extensions', 'size', 'priority', 'seasonSplit', 'action', 'to', 'matches', 'name',
-              'overwrite']
+              'overwrite', 'folderSplit']
 
     def __init__(self, rule_def=None, name=None, config=None):
         if config is None:
@@ -45,6 +57,7 @@ class Rule(object):
         self.size = None
         self.priority = 50
         self.seasonSplit = False
+        self.folderSplit = False
         self.action = self.ACTION_MOVE
         self.to = None
         self.matches = []
@@ -204,7 +217,7 @@ class Rule(object):
 
     def apply(self, candidate, commit=True):
         # print "{action} {filepath} {to}".format(action=self.action, filepath=candidate['filepath'], to=[self.to])
-        result = AttrDict()  # the object I will return
+        result = ApplyResult()  # the object I will return
         if self.action == self.ACTION_DELETE:
             result.update(dict(action=self.action, candidate=candidate, filepath=candidate['filepath']))
             if commit:
@@ -220,6 +233,10 @@ class Rule(object):
                 season, episode = get_episode_infos(candidate['filepath'])
                 if season:
                     to = os.path.join(to, "S%s" % season)
+            if self.folderSplit:
+                # put the file in a subfolder with the name of the file (without extension)
+                folder_name = os.path.splitext(os.path.basename(candidate['filepath']))[0]
+                to = os.path.join(to, folder_name)
             assert self.config and self.config[
                 'target'], "Applying needs that rules have a configuration, with its target"
 

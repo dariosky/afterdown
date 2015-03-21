@@ -39,7 +39,8 @@
     {
       "size": ">500MB",
       "type": "Video",
-      "to": "Films"
+      "to": "Films",
+      "folderSplit": true
     }
   ],
   "types": {

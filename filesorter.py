@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+import sys
 
 try:
     import requests
@@ -16,8 +17,19 @@ print "Copyright (C) 2015  Dario Varotto\n"
 
 PROJECT_PATH = os.path.dirname(__file__)
 COMMIT = True
+VERBOSE = False
 
-logger = logging.getLogger("filesorter.rules")
+def get_logger():
+    l = logging.getLogger("filesorter")
+    l.setLevel(logging.DEBUG)
+    handler = logging.StreamHandler(sys.stdout)
+    l.setLevel(logging.DEBUG if VERBOSE else logging.WARNING)
+    l.addHandler(handler)
+
+    return l
+
+
+logger = get_logger()
 
 
 class FileSorter(object):
@@ -103,9 +115,10 @@ class FileSorter(object):
                 kodi_host = self.config['kodi'].get('host', 'localhost')
                 logger.info("Something changed on target folder, telling Kodi to update video library.")
                 try:
-                    requests.get('http://{kodi_host}/jsonrpc?request={"jsonrpc":"2.0","method":"VideoLibrary.Scan"}'.format(
-                        kodi_host=kodi_host
-                    ))
+                    requests.get(
+                        'http://{kodi_host}/jsonrpc?request={"jsonrpc":"2.0","method":"VideoLibrary.Scan"}'.format(
+                            kodi_host=kodi_host
+                        ))
                 except Exception as e:
                     logger.error("Errors when trying to communicate with Kodi, please do the Video Sync manually.")
                     logger.error("%s" % e)
@@ -164,6 +177,7 @@ class FileSorter(object):
 # DONE: keep a list of folder from wich we removed or moved files, and at the end delete them if they are empty
 # TODO: handle calling parameters to become an usable command getargs
 # TODO: Send mail of the activities
+# DONE: Keep the movie in a separate folder based on the filename without extension
 
 if __name__ == '__main__':
     sorter = FileSorter()
