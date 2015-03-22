@@ -13,9 +13,14 @@ class ApplyResult(AttrDict):
     action = None
     filepath = None
     fullpath = None
+    target_fullpath = None  # populated in MOVE action (the full path of move target)
+    target_filepath = None  # as fullpath, but path is relative to the target folder
 
     def __unicode__(self):
-        return u"{action}: {filepath}".format(action=self.action, filepath=self.filepath)
+        result = u"{action}: {filepath}".format(action=self.action, filepath=self.filepath)
+        if self.action == Rule.ACTION_MOVE:
+            result += u" to: %s" % self.target_filepath
+        return result
 
     def __str__(self):
         return str(self.__unicode__())
@@ -64,6 +69,7 @@ class Rule(object):
         self.types = []
         self.name = None
         self.overwrite = "skip"
+        self.updateKodi = False
 
         self.config = config
 
@@ -221,11 +227,9 @@ class Rule(object):
         if self.action == self.ACTION_DELETE:
             result.update(dict(action=self.action, candidate=candidate, filepath=candidate['filepath']))
             if commit:
-                logger.info("Deleting %s" % candidate['fullpath'])
                 os.remove(candidate['fullpath'])
         elif self.action == self.ACTION_KEEP:
             result.update(dict(action=self.action, candidate=candidate, filepath=candidate['filepath']))
-            logger.info("Keeping %s" % candidate['fullpath'])
         elif self.action == self.ACTION_MOVE:
             assert self.to, "In move action you have to specify the destination with the 'to' parameter."
             to = self.to
@@ -237,8 +241,8 @@ class Rule(object):
                 # put the file in a subfolder with the name of the file (without extension)
                 folder_name = os.path.splitext(os.path.basename(candidate['filepath']))[0]
                 to = os.path.join(to, folder_name)
-            assert self.config and self.config[
-                'target'], "Applying needs that rules have a configuration, with its target"
+            assert self.config and self.config['target'], \
+                "Applying needs that rules have a configuration, with its target"
 
             full_target = os.path.join(self.config['target'], to)
             filename = os.path.basename(candidate['fullpath'])
@@ -270,6 +274,7 @@ class Rule(object):
                 filename = os.path.basename(candidate['fullpath'])
                 full_target_path = os.path.join(full_target, filename)
             result['target_fullpath'] = full_target_path
+            result['target_filepath'] = full_target_path[len(self.config['target']) + 1:]
         return result
 
 # LATER: the size rule, ad example moving films if their size is >500M, should move also the subtitles with same name?

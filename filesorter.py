@@ -19,11 +19,12 @@ PROJECT_PATH = os.path.dirname(__file__)
 COMMIT = True
 VERBOSE = False
 
+
 def get_logger():
     l = logging.getLogger("filesorter")
     l.setLevel(logging.DEBUG)
     handler = logging.StreamHandler(sys.stdout)
-    l.setLevel(logging.DEBUG if VERBOSE else logging.WARNING)
+    l.setLevel(logging.DEBUG if VERBOSE else logging.INFO)
     l.addHandler(handler)
 
     return l
@@ -50,16 +51,16 @@ class FileSorter(object):
         root = os.path.abspath(self.config['source'])
         assert os.path.isdir(root), "Cannot find the defined source %s" % root
 
-        counters = dict(tot=0, one=0, unsure=0, none=0, applied=0)  # a counter for the possible cases
+        counters = dict(tot=0, unsure=0, none=0, applied=0)  # a counter for the possible cases
         actions = []
+        kodi_update_needed = False
 
         for foldername, dirnames, filenames in os.walk(root, followlinks=True):
-            # print foldername[len(root) + 1:] or "/"
+            logger.debug(foldername[len(root) + 1:] or "/")
             for filename in filenames:
                 counters['tot'] += 1
                 fullpath = os.path.join(foldername, filename)
                 filepath = os.path.join(foldername[len(root) + 1:], filename)
-                # print filepath
                 candidate = dict(  # each file found is a possible candidate...
                                    filepath=filepath,  # with a path relative to the source
                                    fullpath=fullpath,  # the fullpath, needed if the rule wants to access the file
@@ -73,9 +74,6 @@ class FileSorter(object):
                         matches.append((confidence, rule))
                 if matches:
                     # print "It matches %d rules: %s" % (len(matches), matches)
-                    if len(matches) == 1:
-                        counters['one'] += 1
-
                     # sort by confidence
                     rules_by_confidence = {}
                     max_confidence = 0
@@ -95,25 +93,25 @@ class FileSorter(object):
                             target_file = done.filepath
                             touched_folder = os.path.dirname(target_file)
                             self.touched_folders.add(touched_folder)
-                        print done
+                        if done.action == Rule.ACTION_MOVE and rule.updateKodi:
+                            kodi_update_needed = True
+                        logger.info("%s" % done)
                         actions.append(done)
                         counters['applied'] += 1
                     else:
                         counters['unsure'] += 1
-                        print "UNSURE: %s matches %s" % (filepath, matches)
+                        logger.warning("UNSURE: %s matches %s" % (filepath, matches))
                 else:
-                    print filepath, "Does not match"
+                    logger.info("%s does not match" % filepath)
                     counters['none'] += 1
-                    # break  # just one folder test
                     # LATER: Check the file is not in use
-                    # print
-        moved_actions = filter(lambda d: d.action == Rule.ACTION_MOVE, actions)
-        if moved_actions and self.config.get("kodi", {}).get('request_update', False) and COMMIT:
+
+        if kodi_update_needed and self.config.get("kodi", {}).get('requestUpdate', False) and COMMIT:
             if not requests:
-                logger.error("requests is needed to syncronize with Kodi.")
+                logger.error("Requests is needed to syncronize with Kodi.")
             else:
                 kodi_host = self.config['kodi'].get('host', 'localhost')
-                logger.info("Something changed on target folder, telling Kodi to update video library.")
+                logger.info("Something changed on target folder, asking Kodi to update video library.")
                 try:
                     requests.get(
                         'http://{kodi_host}/jsonrpc?request={"jsonrpc":"2.0","method":"VideoLibrary.Scan"}'.format(
@@ -124,9 +122,11 @@ class FileSorter(object):
                     logger.error("%s" % e)
 
         if self.touched_folders and self.deleteEmptyFolders:
-            print "Touched folders", self.touched_folders
+            logger.debug("Touched folders %s", self.touched_folders)
             self.do_delete_touched_folders()
-        print "we had {tot} files: {applied} actions taken, {unsure} uncertain, {none} unrecognized.".format(**counters)
+        logger.info(
+            "we had {tot} files: {applied} actions taken, {unsure} uncertain, {none} unrecognized.".format(**counters)
+        )
 
     def read_config(self):
         config = json.load(file(self.config_file))  # read the config form json
@@ -153,7 +153,7 @@ class FileSorter(object):
         # defaults for kodi configuration
         if "kodi" not in config:
             config["kodi"] = dict(host="localhost",
-                                  request_update=False)
+                                  requestUpdate=False)
         # pprint(config)
         return config
 
@@ -177,6 +177,7 @@ class FileSorter(object):
 # DONE: keep a list of folder from wich we removed or moved files, and at the end delete them if they are empty
 # TODO: handle calling parameters to become an usable command getargs
 # TODO: Send mail of the activities
+# TODO: Polling a dropbox folder to search for torrent files to start download
 # DONE: Keep the movie in a separate folder based on the filename without extension
 
 if __name__ == '__main__':

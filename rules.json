@@ -76,11 +76,12 @@
       "action": "move",
       "to": "_trash",
       "priority": 0,
-      "overwrite": "rename"
+      "overwrite": "rename",
+      "updateKodi": false
     }
   },
   "kodi":{
     "host": "localhost",
-    "request_update": true
+    "requestUpdate": true
   }
 }
