@@ -1,6 +1,19 @@
 {
   "source": "test/folder_to_monitor",
   "target": "test/target_folder",
+
+  "kodi":{
+    "host": "localhost",
+    "requestUpdate": true
+  },
+
+  "mail":{
+    "to": "target@email.com",
+    "subject": "Filesorter status mail",
+    "smtp": "smtp.mandrillapp.com:587"
+  },
+
+
   "rules": [
     {
       "match": "stalker",
@@ -79,9 +92,5 @@
       "overwrite": "rename",
       "updateKodi": false
     }
-  },
-  "kodi":{
-    "host": "localhost",
-    "requestUpdate": true
   }
 }

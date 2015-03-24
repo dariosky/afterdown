@@ -2,8 +2,12 @@
 # coding: utf-8
 import json
 import logging
+import logging.handlers
 import os
+from pprint import pprint
+import smtplib
 import sys
+from core.log import BufferedSmtpHandler
 
 try:
     import requests
@@ -23,10 +27,14 @@ VERBOSE = False
 def get_logger():
     l = logging.getLogger("filesorter")
     l.setLevel(logging.DEBUG)
-    handler = logging.StreamHandler(sys.stdout)
+    console_handler = logging.StreamHandler(sys.stdout)
     l.setLevel(logging.DEBUG if VERBOSE else logging.INFO)
-    l.addHandler(handler)
+    l.addHandler(console_handler)
 
+    fileLogger = logging.FileHandler('filesorter.log')
+    fileLogger.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+    l.addHandler(fileLogger)
+    # return the logger now, maybe I will add the mail handler later, after parsing the config
     return l
 
 
@@ -43,6 +51,7 @@ class FileSorter(object):
         self.config = None
         self.deleteEmptyFolders = True
         self.touched_folders = set()  # the folders on source that have been touched (by a MOVE or DELETE)
+        self.mail_handler = None  # the eventual BufferedSmtpHandler, will be flushed when need to send mail
 
     def run(self):
         if self.config is None:
@@ -154,6 +163,37 @@ class FileSorter(object):
         if "kodi" not in config:
             config["kodi"] = dict(host="localhost",
                                   requestUpdate=False)
+
+        if "mail" in config:
+            default_mail_settings = dict(
+                subject="Filesorter status",
+                smtp="localhost:25",
+            )
+            default_mail_settings['from'] = os.getenv("FILESORTER_MAIL_FROM")
+            default_mail_settings['password'] = os.getenv("FILESORTER_MAIL_PASSWORD")
+            for key, value in default_mail_settings.items():
+                if key not in config["mail"]:
+                    config["mail"][key] = value
+            assert config["mail"]["to"], "If you activate the send mail function, specify a recipient \"to\""
+            smtp_host = config["mail"]["smtp"]
+            if ":" in smtp_host:
+                smtp_host, smtp_port = smtp_host.split(":")
+                config["mail"]["smtp"] = smtp_host
+                config["mail"]["port"] = smtp_port
+            else:
+                config["mail"]["port"] = smtplib.SMTP_PORT
+            # pprint(config["mail"])
+            self.mail_handler = BufferedSmtpHandler(
+                mailfrom=config["mail"]["from"],
+                mailto=config["mail"]["to"],
+                subject=config["mail"]["subject"] or None,
+                smtp_host=config["mail"]["smtp"],
+                smtp_port=config["mail"]["port"],
+
+                smtp_username=config["mail"]["from"],
+                smtp_password=config["mail"]["password"],
+            )
+            logger.addHandler(self.mail_handler)
         # pprint(config)
         return config
 
@@ -183,3 +223,6 @@ class FileSorter(object):
 if __name__ == '__main__':
     sorter = FileSorter()
     sorter.run()
+    if sorter.mail_handler:
+        # sending mail
+        sorter.mail_handler.flush()
