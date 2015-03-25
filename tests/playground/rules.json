@@ -1,6 +1,6 @@
 {
-  "source": "test/folder_to_monitor",
-  "target": "test/target_folder",
+  "source": "folder_to_monitor",
+  "target": "target_folder",
 
   "kodi":{
     "host": "localhost",
@@ -8,7 +8,7 @@
   },
 
   "mail":{
-    "to": "target@email.com",
+    "to": "test@email.com",
     "subject": "Filesorter status mail",
     "smtp": "smtp.mandrillapp.com:587"
   },
@@ -46,7 +46,7 @@
     },
     {
       "match": "put_in_folders.bat",
-      "action": "keep",
+      "action": "skip",
       "priority": 100
     },
     {

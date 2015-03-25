@@ -2,16 +2,6 @@ import os
 # This script create a list of file taken from an `ls` output and put them (zero sized) in a destination folder
 # it's used to create test files for filesorter
 
-PROJECT_PATH = os.path.dirname(__file__)
-ls_file = os.path.join(PROJECT_PATH, "ls_file.txt")
-destination_folder = os.path.join(PROJECT_PATH, 'test', 'folder_to_monitor')
-print "Creating structure from %s" % ls_file
-
-
-# get lines from the ls output
-lines = [line.strip() for line in file(ls_file).readlines()]
-lines = filter(lambda x: x, lines)
-
 
 def scan_ls_file(lines, destination_folder, only_folders=True):
     current_folder = destination_folder
@@ -32,12 +22,30 @@ def scan_ls_file(lines, destination_folder, only_folders=True):
                 print "\t%s" % maybe_file_path
                 open(maybe_file_path, 'a').close()
 
-# Do a first scan creating folders...
-scan_ls_file(lines, destination_folder, only_folders=True)
-# ... then create the files, where they are not a folder
-scan_ls_file(lines, destination_folder, only_folders=False)
+
+class LSCreator():
+    def __init__(self, ls_file, destination_folder):
+        self.ls_file = ls_file
+        self.destination_folder = destination_folder
+
+    def run(self):
+        # get lines from the ls output
+        lines = [line.strip() for line in file(self.ls_file).readlines()]
+        lines = filter(lambda x: x, lines)
+
+        # Do a first scan creating folders...
+        scan_ls_file(lines, self.destination_folder, only_folders=True)
+        # ... then create the files, where they are not a folder
+        scan_ls_file(lines, self.destination_folder, only_folders=False)
 
 
-
-
-
+if __name__ == '__main__':
+    PROJECT_PATH = os.path.dirname(__file__)
+    ls_file = os.path.join(PROJECT_PATH, "ls_file.txt")
+    destination_folder = os.path.join(PROJECT_PATH, 'folder_to_monitor')
+    print "Creating structure from %s" % ls_file
+    lc = LSCreator(
+        ls_file=ls_file,
+        destination_folder=destination_folder,
+    )
+    lc.run()

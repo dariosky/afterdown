@@ -4,8 +4,6 @@ import json
 import logging
 import logging.handlers
 import os
-from pprint import pprint
-import smtplib
 import sys
 from core.log import BufferedSmtpHandler
 
@@ -19,32 +17,34 @@ from core.rules import Rule
 print "Filesorter 0.031415"
 print "Copyright (C) 2015  Dario Varotto\n"
 
-PROJECT_PATH = os.path.dirname(__file__)
-COMMIT = True
-VERBOSE = False
-
-
-def get_logger():
-    l = logging.getLogger("filesorter")
-    l.setLevel(logging.DEBUG)
-    console_handler = logging.StreamHandler(sys.stdout)
-    l.setLevel(logging.DEBUG if VERBOSE else logging.INFO)
-    l.addHandler(console_handler)
-
-    fileLogger = logging.FileHandler('filesorter.log')
-    fileLogger.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
-    l.addHandler(fileLogger)
-    # return the logger now, maybe I will add the mail handler later, after parsing the config
-    return l
-
-
-logger = get_logger()
-
 
 class FileSorter(object):
-    def __init__(self, config_file=None):
-        if config_file is None:
-            config_file = os.path.join(PROJECT_PATH, 'rules.json')
+    def get_logger(self, log_path=None, VERBOSE=False):
+        l = logging.getLogger("filesorter")
+        l.setLevel(logging.DEBUG)
+        console_handler = logging.StreamHandler(sys.stdout)
+        l.setLevel(logging.DEBUG if VERBOSE else logging.INFO)
+        l.addHandler(console_handler)
+        if log_path:
+            log_dir = os.path.dirname(log_path)
+            if not os.path.isdir(log_dir):
+                os.makedirs(log_dir)
+            file_logger = logging.FileHandler(log_path)
+            file_logger.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+            l.addHandler(file_logger)
+        # return the logger now, maybe I will add the mail handler later, after parsing the config
+        return l
+
+    def __init__(self,
+                 config_file,
+                 log_path=None,
+                 DEBUG=False, COMMIT=True, VERBOSE=False
+                 ):
+        self.VERBOSE = VERBOSE
+        self.COMMIT = COMMIT
+        self.DEBUG = DEBUG
+        self.logger = self.get_logger(log_path=log_path, VERBOSE=VERBOSE)
+        assert config_file, "Please provide me a config file."
         if not os.path.isfile(config_file):
             raise Exception("Config file %s not found." % config_file)
         self.config_file = config_file
@@ -64,18 +64,20 @@ class FileSorter(object):
         actions = []
         kodi_update_needed = False
 
+        logger = self.logger
         for foldername, dirnames, filenames in os.walk(root, followlinks=True):
             logger.debug(foldername[len(root) + 1:] or "/")
             for filename in filenames:
                 counters['tot'] += 1
                 fullpath = os.path.join(foldername, filename)
                 filepath = os.path.join(foldername[len(root) + 1:], filename)
-                candidate = dict(  # each file found is a possible candidate...
-                                   filepath=filepath,  # with a path relative to the source
-                                   fullpath=fullpath,  # the fullpath, needed if the rule wants to access the file
-                                   # other eventual things will be added from the rules when needed...
-                                   # possible candidates are: extension, filesize, xmp tags or things like that
-                                   )
+                # each file found is a possible candidate...
+                candidate = dict(
+                    filepath=filepath,  # with a path relative to the source
+                    fullpath=fullpath,  # the fullpath, needed if the rule wants to access the file
+                    # other eventual things will be added from the rules when needed...
+                    # possible candidates are: extension, filesize, xmp tags or things like that
+                )
                 matches = []
                 for rule in self.config["rules"]:
                     confidence = rule.match(candidate)
@@ -97,7 +99,7 @@ class FileSorter(object):
                     # if there is only one rule with top confidence apply it
                     if len(rules_by_confidence[max_confidence]) == 1:
                         rule = rules_by_confidence[max_confidence][0]
-                        done = rule.apply(candidate, commit=COMMIT)
+                        done = rule.apply(candidate, commit=self.COMMIT)
                         if done.action in (Rule.ACTION_DELETE, Rule.ACTION_MOVE):
                             target_file = done.filepath
                             touched_folder = os.path.dirname(target_file)
@@ -105,8 +107,11 @@ class FileSorter(object):
                         if done.action == Rule.ACTION_MOVE and rule.updateKodi:
                             kodi_update_needed = True
                         logger.info("%s" % done)
-                        actions.append(done)
-                        counters['applied'] += 1
+                        if done.action != Rule.ACTION_SKIP:
+                            actions.append(done)
+                            counters['applied'] += 1
+                            if self.mail_handler:
+                                self.mail_handler.send_mail = True
                     else:
                         counters['unsure'] += 1
                         logger.warning("UNSURE: %s matches %s" % (filepath, matches))
@@ -115,7 +120,7 @@ class FileSorter(object):
                     counters['none'] += 1
                     # LATER: Check the file is not in use
 
-        if kodi_update_needed and self.config.get("kodi", {}).get('requestUpdate', False) and COMMIT:
+        if kodi_update_needed and self.config.get("kodi", {}).get('requestUpdate', False) and self.COMMIT:
             if not requests:
                 logger.error("Requests is needed to syncronize with Kodi.")
             else:
@@ -136,6 +141,8 @@ class FileSorter(object):
         logger.info(
             "we had {tot} files: {applied} actions taken, {unsure} uncertain, {none} unrecognized.".format(**counters)
         )
+        if self.mail_handler:
+            self.mail_handler.flush()
 
     def read_config(self):
         config = json.load(file(self.config_file))  # read the config form json
@@ -156,7 +163,6 @@ class FileSorter(object):
                 name = rule.name  # the rule does the normalization
                 assert name not in config['types'], "Multiple file type definition for %s" % name
                 config['types'][name] = rule
-                # print pprint(types)
 
         config["rules"] = [Rule(rule_def, config=config) for rule_def in config["rules"]]
         # defaults for kodi configuration
@@ -181,8 +187,7 @@ class FileSorter(object):
                 config["mail"]["smtp"] = smtp_host
                 config["mail"]["port"] = smtp_port
             else:
-                config["mail"]["port"] = smtplib.SMTP_PORT
-            # pprint(config["mail"])
+                config["mail"]["port"] = None
             self.mail_handler = BufferedSmtpHandler(
                 mailfrom=config["mail"]["from"],
                 mailto=config["mail"]["to"],
@@ -192,9 +197,10 @@ class FileSorter(object):
 
                 smtp_username=config["mail"]["from"],
                 smtp_password=config["mail"]["password"],
+                DEBUG=self.DEBUG,
+                send_mail=False,  # I'll handle the send mail request only when there's an action
             )
-            logger.addHandler(self.mail_handler)
-        # pprint(config)
+            self.logger.addHandler(self.mail_handler)
         return config
 
     def do_delete_touched_folders(self):
@@ -208,21 +214,25 @@ class FileSorter(object):
             if folder and os.path.isdir(folder_path) \
                     and folder_path.startswith(root) and folder_path != root \
                     and not os.listdir(folder_path):
-                logger.info("Deleting empty folder:", folder_path)
+                self.logger.info("Deleting empty folder: %s" % folder_path)
                 os.rmdir(folder_path)
                 if folder_path != root:
                     parent_folder = os.path.dirname(folder_path)
                     self.touched_folders.add(parent_folder)
 
 # DONE: keep a list of folder from wich we removed or moved files, and at the end delete them if they are empty
-# TODO: handle calling parameters to become an usable command getargs
-# TODO: Send mail of the activities
-# TODO: Polling a dropbox folder to search for torrent files to start download
+# DONE: Send mail of the activities
 # DONE: Keep the movie in a separate folder based on the filename without extension
 
 if __name__ == '__main__':
-    sorter = FileSorter()
+    PROJECT_PATH = os.path.dirname(__file__)
+    PLAYGROUND_FOLDER = os.path.join(PROJECT_PATH, "tests", "playground")
+    os.chdir(PLAYGROUND_FOLDER)
+    sorter = FileSorter(
+        config_file="rules.json",
+        DEBUG=False,  # When debugging no mail are sent
+        VERBOSE=False,  # When verbose we will print on console even debug messages
+        COMMIT=True,  # When commit we actually move or delete files from the watched folder
+        log_path=os.path.join(PROJECT_PATH, "logs", "filesorter.log")
+    )
     sorter.run()
-    if sorter.mail_handler:
-        # sending mail
-        sorter.mail_handler.flush()

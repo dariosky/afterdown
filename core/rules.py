@@ -43,7 +43,7 @@ class Rule(object):
 
     ACTION_MOVE = "MOVE"  # move the file to a position
     ACTION_DELETE = "DELETE"  # delete the file, use with caution
-    ACTION_KEEP = "KEEP"  # don't do nothing, just keep the file there
+    ACTION_SKIP = "SKIP"  # don't do nothing, just keep the file there
 
     # define the possible fields
     fields = ['extensions', 'size', 'priority', 'seasonSplit', 'action', 'to', 'matches', 'name',
@@ -102,11 +102,11 @@ class Rule(object):
             self.action = self.ACTION_DELETE
         elif self.action == "move":
             self.action = self.ACTION_MOVE
-        elif self.action == "keep":
-            self.action = self.ACTION_KEEP
+        elif self.action == "skip":
+            self.action = self.ACTION_SKIP
 
         assert self.action in (
-            self.ACTION_MOVE, self.ACTION_DELETE, self.ACTION_KEEP
+            self.ACTION_MOVE, self.ACTION_DELETE, self.ACTION_SKIP
         ), "Unknown action %s" % self.action
         self.add_field('name', name)
 
@@ -177,7 +177,6 @@ class Rule(object):
             value = int(value) * multiplier
             return operator, value
         elif key == "matches":
-            # TODO: allow matches with regex, for example using a string between slashed: /\d{2} - anim.*/
             return value.lower()
         elif key == "overwrite":
             value = value.lower()
@@ -228,7 +227,7 @@ class Rule(object):
             result.update(dict(action=self.action, candidate=candidate, filepath=candidate['filepath']))
             if commit:
                 os.remove(candidate['fullpath'])
-        elif self.action == self.ACTION_KEEP:
+        elif self.action == self.ACTION_SKIP:
             result.update(dict(action=self.action, candidate=candidate, filepath=candidate['filepath']))
         elif self.action == self.ACTION_MOVE:
             assert self.to, "In move action you have to specify the destination with the 'to' parameter."
@@ -256,7 +255,7 @@ class Rule(object):
                     logger.warning("File %s already exist on %s" % (filename, to))
                     if self.overwrite == "skip":
                         logger.warning("Skipping this file")
-                        result['action'] = self.ACTION_KEEP
+                        result['action'] = self.ACTION_SKIP
                         return result
                     elif self.overwrite == "overwrite":
                         logger.info("Overwriting")
