@@ -50,11 +50,30 @@ The rule matching with the higher score (if one) will decide what to do with the
 
 As an example
 "rules":[
-	{"match": "stalker",
-     "to": "Serie/Stalker"}
+	{"match": "Big Bang Theory",
+     "to": "Serie/Big Bang Theory"}
 ]
 
 will match each file, with the word "Big Bang Theory" in the path relative to the source folder...
 The string Big.Bang-Theory for example would also match the rule, but with a lower confidence.
 If the rule match and has the higher score, the file will be moved (the default action) to the folder specified in "to"
 under the "target" global folder definition.
+
+The default rule priority is 50 (and only 80% of it will be taken when a non exact match is found), can be defined with
+"priority": 50
+
+You can also define other actions:
+"action": "move"	the default, require the "to" parameter to be also set
+"action": "skip"	will ignore the file, leaving it on the source folder (this wouldn't trigger the notification email)
+"action": "delete"	delete the file from the source folder
+
+With the match, we can match the filename, but we can also add other filters:
+"extension": ["avi", "mp4"]	will match the file extensions
+"size": ">500MB"	will match the file size (we can specify normal operator and a suffix M, K, B)
+
+When moving a file we can decide to specify other options:
+"folderSplit": true		Will create a folder named like the filename (without extension) inside the current target
+"seasonSplit": true		Will try to extract the season&episode number from the filename and will put the files in
+ 						target/Sxx/	folder
+"overwrite": "skip" | "rename" | "overwrite"	decide what to do when file exists on destination (default: skip)
+"updateKodi": false		When set, even if the rule move the file, an update won't be triggered to Kodi
