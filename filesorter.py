@@ -225,14 +225,25 @@ class FileSorter(object):
 # DONE: Keep the movie in a separate folder based on the filename without extension
 
 if __name__ == '__main__':
+    import argparse
+
     PROJECT_PATH = os.path.dirname(__file__)
-    PLAYGROUND_FOLDER = os.path.join(PROJECT_PATH, "tests", "playground")
-    os.chdir(PLAYGROUND_FOLDER)
+
+    parser = argparse.ArgumentParser("Filesorter", version="0.36a")
+    parser.add_argument("--debug", help="Run in debug mode, no file moved, no mail sent",
+                        default=False, action="store_true")
+    parser.add_argument("-c", "--config", help="Select the config json file to use")
+    parser.add_argument("--log", help="Specify the log file path",
+                        default=os.path.join(PROJECT_PATH, "logs", "filesorter.log"))
+    args = parser.parse_args()
+
+    # PLAYGROUND_FOLDER = os.path.join(PROJECT_PATH, "tests", "playground")
+    # os.chdir(PLAYGROUND_FOLDER)
     sorter = FileSorter(
-        config_file="rules.json",
-        DEBUG=False,  # When debugging no mail are sent
+        config_file=args.config,
+        DEBUG=args.debug,  # When debugging no mail are sent
         VERBOSE=False,  # When verbose we will print on console even debug messages
-        COMMIT=True,  # When commit we actually move or delete files from the watched folder
-        log_path=os.path.join(PROJECT_PATH, "logs", "filesorter.log")
+        COMMIT=args.debug,  # When commit we actually move or delete files from the watched folder
+        log_path=args.log,
     )
     sorter.run()
