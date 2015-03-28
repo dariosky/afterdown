@@ -145,7 +145,7 @@ class FileSorter(object):
 
     def read_config(self):
         config = json.load(file(self.config_file))  # read the config form json
-        if override_config:
+        if self.override_config:
             config.update(self.override_config)
         config = self.prepare_config(config)  # validate and prepare config
         return config
@@ -253,8 +253,6 @@ if __name__ == '__main__':
     if args.target is not None:
         override_config["target"] = args.target
 
-    # PLAYGROUND_FOLDER = os.path.join(PROJECT_PATH, "tests", "playground")
-    # os.chdir(PLAYGROUND_FOLDER)
     sorter = FileSorter(
         config_file=args.config,
         DEBUG=args.debug,  # When debugging no mail are sent
