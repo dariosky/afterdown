@@ -16,13 +16,13 @@ except ImportError:
 
 from core.rules import Rule
 
-print "Filesorter %s" % VERSION
+print "AfterDown %s" % VERSION
 print "Copyright (C) 2015  Dario Varotto\n"
 
 
-class FileSorter(object):
+class AfterDown(object):
     def get_logger(self, log_path=None, VERBOSE=False):
-        l = logging.getLogger("filesorter")
+        l = logging.getLogger("afterdown")
         l.setLevel(logging.DEBUG)
         console_handler = logging.StreamHandler(sys.stdout)
         l.setLevel(logging.DEBUG if VERBOSE else logging.INFO)
@@ -31,9 +31,9 @@ class FileSorter(object):
             log_dir = os.path.dirname(log_path)
             if not os.path.isdir(log_dir):
                 os.makedirs(log_dir)
-            file_logger = logging.FileHandler(log_path)
-            file_logger.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
-            l.addHandler(file_logger)
+            self.file_logger = logging.FileHandler(log_path)
+            self.file_logger.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+            l.addHandler(self.file_logger)
         # return the logger now, maybe I will add the mail handler later, after parsing the config
         return l
 
@@ -173,11 +173,11 @@ class FileSorter(object):
 
         if "mail" in config:
             default_mail_settings = dict(
-                subject="Filesorter status",
+                subject="Afterdown status",
                 smtp="localhost:25",
             )
-            default_mail_settings['from'] = os.getenv("FILESORTER_MAIL_FROM")
-            default_mail_settings['password'] = os.getenv("FILESORTER_MAIL_PASSWORD")
+            default_mail_settings['from'] = os.getenv("AFTERDOWN_MAIL_FROM")
+            default_mail_settings['password'] = os.getenv("AFTERDOWN_MAIL_PASSWORD")
             for key, value in default_mail_settings.items():
                 if key not in config["mail"]:
                     config["mail"][key] = value
@@ -230,7 +230,7 @@ if __name__ == '__main__':
 
     PROJECT_PATH = os.path.dirname(__file__)
 
-    parser = argparse.ArgumentParser("Filesorter",
+    parser = argparse.ArgumentParser("Afterdown",
                                      description="Sort everything in a folder based on some rules you define",
                                      version=VERSION)
     parser.add_argument("--debug",
@@ -241,8 +241,8 @@ if __name__ == '__main__':
                         help="Select the config json file to use (default to rules.json in current folder)",
                         default="rules.json")
     parser.add_argument("--log",
-                        help="Specify the log file path (default filesorter.log in current folder)",
-                        default=os.path.join(PROJECT_PATH, "logs", "filesorter.log"))
+                        help="Specify the log file path (default afterdown.log in current folder)",
+                        default=os.path.join(PROJECT_PATH, "logs", "afterdown.log"))
     parser.add_argument("source", help="override the folder to be monitored", default=None, nargs="?")
     parser.add_argument("target", help="override the destination folder", default=None, nargs="?")
     args = parser.parse_args()
@@ -253,7 +253,7 @@ if __name__ == '__main__':
     if args.target is not None:
         override_config["target"] = args.target
 
-    sorter = FileSorter(
+    sorter = AfterDown(
         config_file=args.config,
         DEBUG=args.debug,  # When debugging no mail are sent
         VERBOSE=False,  # When verbose we will print on console even debug messages

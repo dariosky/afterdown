@@ -1,6 +1,6 @@
 import os
 # This script create a list of file taken from an `ls` output and put them (zero sized) in a destination folder
-# it's used to create test files for filesorter
+# it's used to create test files for Afterdown
 
 
 def scan_ls_file(lines, destination_folder, only_folders=True):

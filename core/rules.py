@@ -6,7 +6,7 @@ import logging
 from core.matching import try_match_strings
 from core.season_info import get_episode_infos
 
-logger = logging.getLogger("filesorter.rules")
+logger = logging.getLogger("afterdown.rules")
 
 
 class ApplyResult(AttrDict):

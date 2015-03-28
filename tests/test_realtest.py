@@ -1,6 +1,6 @@
 # Test to populate the folder to monitor (using create_files_from_ls) run the rules and check the results
 import os
-from filesorter import FileSorter
+from afterdown import AfterDown
 import pytest
 import shutil
 from tests.playground.create_files_from_ls import LSCreator
@@ -25,15 +25,15 @@ def playground_folder(request):
     )
     lc.run()
 
-    # now we run the filesorter ...
+    # now we run the program ...
     # we have the playground ready the rules file with source and target as relative path
     # so change the working path to the playground
     os.chdir(PLAYGROUND_FOLDER)
     config_file = 'rules.json'
-
-    sorter = FileSorter(
+    log_path = os.path.join(PLAYGROUND_FOLDER, "log.log")
+    sorter = AfterDown(
         config_file=config_file,
-        log_path=os.path.join(PLAYGROUND_FOLDER, "log.log"),
+        log_path=log_path,
         DEBUG=True,  # When debugging no mail are sent
     )
     sorter.run()
@@ -45,6 +45,8 @@ def playground_folder(request):
         print "Destroying Fixtures"
         shutil.rmtree(source_folder)
         shutil.rmtree(target_folder)
+        sorter.file_logger.close()
+        os.remove(log_path)
 
     request.addfinalizer(destroy_fixtures)
 

@@ -1,7 +1,7 @@
 import logging
 import re
 
-logger = logging.getLogger("filesorter.matching")
+logger = logging.getLogger("afterdown.matching")
 
 
 def full_case_insensitive_match(filename, match_string):

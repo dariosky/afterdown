@@ -9,7 +9,7 @@
 
   "mail":{
     "to": "test@email.com",
-    "subject": "Filesorter status mail",
+    "subject": "Afterdown status mail",
     "smtp": "smtp.mandrillapp.com:587"
   },
 
