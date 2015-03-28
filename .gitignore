@@ -4,4 +4,6 @@
 # the playground for testing:
 tests/playground/target_folder
 tests/playground/folder_to_monitor
-tests/playground/log.log
+
+# the default rules, used in dev
+/rules.json

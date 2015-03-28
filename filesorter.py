@@ -7,6 +7,8 @@ import os
 import sys
 from core.log import BufferedSmtpHandler
 
+VERSION = "0.031415"
+
 try:
     import requests
 except ImportError:
@@ -14,7 +16,7 @@ except ImportError:
 
 from core.rules import Rule
 
-print "Filesorter 0.031415"
+print "Filesorter %s" % VERSION
 print "Copyright (C) 2015  Dario Varotto\n"
 
 
@@ -35,11 +37,8 @@ class FileSorter(object):
         # return the logger now, maybe I will add the mail handler later, after parsing the config
         return l
 
-    def __init__(self,
-                 config_file,
-                 log_path=None,
-                 DEBUG=False, COMMIT=True, VERBOSE=False
-                 ):
+    def __init__(self, config_file, log_path=None, DEBUG=False, COMMIT=True, VERBOSE=False, override_config=None):
+        self.override_config = override_config
         self.VERBOSE = VERBOSE
         self.COMMIT = COMMIT
         self.DEBUG = DEBUG
@@ -146,6 +145,8 @@ class FileSorter(object):
 
     def read_config(self):
         config = json.load(file(self.config_file))  # read the config form json
+        if override_config:
+            config.update(self.override_config)
         config = self.prepare_config(config)  # validate and prepare config
         return config
 
@@ -229,13 +230,28 @@ if __name__ == '__main__':
 
     PROJECT_PATH = os.path.dirname(__file__)
 
-    parser = argparse.ArgumentParser("Filesorter", version="0.36a")
-    parser.add_argument("--debug", help="Run in debug mode, no file moved, no mail sent",
-                        default=False, action="store_true")
-    parser.add_argument("-c", "--config", help="Select the config json file to use")
-    parser.add_argument("--log", help="Specify the log file path",
+    parser = argparse.ArgumentParser("Filesorter",
+                                     description="Sort everything in a folder based on some rules you define",
+                                     version=VERSION)
+    parser.add_argument("--debug",
+                        help="Run in debug mode, no file moved, no mail sent",
+                        default=False,
+                        action="store_true")
+    parser.add_argument("-c", "--config",
+                        help="Select the config json file to use (default to rules.json in current folder)",
+                        default="rules.json")
+    parser.add_argument("--log",
+                        help="Specify the log file path (default filesorter.log in current folder)",
                         default=os.path.join(PROJECT_PATH, "logs", "filesorter.log"))
+    parser.add_argument("source", help="override the folder to be monitored", default=None, nargs="?")
+    parser.add_argument("target", help="override the destination folder", default=None, nargs="?")
     args = parser.parse_args()
+
+    override_config = {}
+    if args.source is not None:
+        override_config["source"] = args.source
+    if args.target is not None:
+        override_config["target"] = args.target
 
     # PLAYGROUND_FOLDER = os.path.join(PROJECT_PATH, "tests", "playground")
     # os.chdir(PLAYGROUND_FOLDER)
@@ -245,5 +261,6 @@ if __name__ == '__main__':
         VERBOSE=False,  # When verbose we will print on console even debug messages
         COMMIT=args.debug,  # When commit we actually move or delete files from the watched folder
         log_path=args.log,
+        override_config=override_config,
     )
     sorter.run()
