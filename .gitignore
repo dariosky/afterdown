@@ -8,3 +8,4 @@ tests/playground/folder_to_monitor
 
 # the default rules, used in dev
 /rules.json
+/folder_to_monitor

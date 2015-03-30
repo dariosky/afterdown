@@ -19,3 +19,11 @@ def test_match_spaced_string():
         matches=['big bang theory'],
         max_priority=100,
     ) == 80
+
+
+def test_match_regex():
+    assert try_match_strings(
+        candidate=dict(filepath="44 cats in row by 3 with the remainder of 2.avi"),
+        matches=['/\d+\ cats\w+\.avi/'],
+        max_priority=100,
+    ) == 100

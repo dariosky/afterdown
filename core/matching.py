@@ -17,7 +17,36 @@ def justwords_case_insensitive_match(filename, match_string):
     return remove_special_chars(match_string).lower() in filename
 
 
+def js_to_py_re(rx):
+    """
+    Derived from http://stackoverflow.com/questions/11230743/how-to-parse-a-javascript-regexp-in-python
+    """
+    nonmatching_function = lambda s: False  # not a js regex form
+    if not rx or rx[0] != "/":
+        return nonmatching_function
+    query, params = rx.rsplit('/', 1)
+    if len(query) <= 1:
+        return nonmatching_function
+    else:
+        query = query[1:]
+    if 'g' in params:
+        obj = re.findall
+    else:
+        obj = re.search
+
+    # May need to make flags= smarter, but just an example...
+    return lambda f: obj(query, f, flags=re.I if 'i' in params else 0)
+
+
+def regex_match(filename, match_string):
+    if match_string and match_string[0] == "/":
+        return js_to_py_re(match_string)(filename)
+    else:
+        return False
+
+
 MATCH_TESTS = [
+    dict(confidence=100, match_func=regex_match),
     dict(confidence=100, match_func=full_case_insensitive_match, prepare_filepath=lambda x: x.lower()),
     dict(confidence=80, match_func=justwords_case_insensitive_match,
          prepare_filepath=lambda x: remove_special_chars(x).lower()),
