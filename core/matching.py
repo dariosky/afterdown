@@ -40,7 +40,8 @@ def js_to_py_re(rx):
 
 def regex_match(filename, match_string):
     if match_string and match_string[0] == "/":
-        return js_to_py_re(match_string)(filename)
+        searchfunc = js_to_py_re(match_string)
+        return searchfunc(filename)
     else:
         return False
 
@@ -68,3 +69,10 @@ def try_match_strings(candidate, matches, max_priority):
                 return result
     logger.debug("Rejected rule %s doesn't match." % matches)
     return False
+
+
+if __name__ == '__main__':
+    pat = '\d+\ cats[\w ]+\.avi'
+    repat = js_to_py_re('/' + pat + '/')
+    s = "44 cats in row by 3 with the remainder of 2.avi"
+    print repat(s)
