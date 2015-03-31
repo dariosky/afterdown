@@ -257,7 +257,7 @@ if __name__ == '__main__':
         config_file=args.config,
         DEBUG=args.debug,  # When debugging no mail are sent
         VERBOSE=False,  # When verbose we will print on console even debug messages
-        COMMIT=args.debug,  # When commit we actually move or delete files from the watched folder
+        COMMIT=not args.debug,  # When commit we actually move or delete files from the watched folder
         log_path=args.log,
         override_config=override_config,
     )
