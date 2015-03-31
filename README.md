@@ -81,7 +81,7 @@ We can also match using a regex, specify them in Javascript-like format:
 	match: "/big\s+bang/s+theory/i"
 
 The default rule priority is 50 (and only 80% of it will be taken when a non exact match is found), can be defined with
-"priority": 50
+`"priority": 50`
 
 You can also define other actions:
 
@@ -89,14 +89,14 @@ You can also define other actions:
 	"action": "skip"	will ignore the file, leaving it on the source folder (this wouldn't trigger the notification email)
 	"action": "delete"	delete the file from the source folder
 
-With the match, we can match the filename, but we can also add other filters:
+We can match the filename, but we can also add other filters:
 
 	"extension": ["avi", "mp4"]	will match the file extensions
 	"size": ">500MB"	will match the file size (we can specify normal operator and a suffix M, K, B)
 
 When moving a file we can decide to specify other options:
 
-	"folderSplit": true		Will create a folder named like the filename (without extension) inside the current target
+	"folderSplit": true		Will create a folder named like the filename (without extension) inside the current target. Useful in Kodi if a target folder is set as (each film in its subfolder)
 	"seasonSplit": true		Will try to extract the season&episode number from the filename and will put the files in target/Sxx/ folder
 
 	"overwrite": "skip" | "rename" | "overwrite"	decide what to do when file exists on destination (default: skip)
@@ -105,14 +105,15 @@ When moving a file we can decide to specify other options:
 Types
 -----
 
-Common settings can be reused by using types.
+Common settings can be reused using types.
 
-Types are a special kind of rules that can be inherited by real rules in a hierarchical way.
+Types are a special kind of rules, with a name, that can be inherited by real rules in a hierarchical way.
 
 For example, if you create many rules to move various kind of movie in different folders, and all the movies
-should have size > 500MB and file extensions in ("avi", "mkv"), you can simplify your configuration in this way:
+must have size > 500MB and file extensions in ("avi", "mkv"), you can simplify your configuration in this way:
 
-	"rules": [{"target":"folder1", "match": "film1", "type":"film"}, {"target":"folder2", "match": "film2", "type":"film"}]
+	"rules": [{"target":"folder1", "match": "film1", "type":"film"},
+			  {"target":"folder2", "match": "film2", "type":"film"}]
 	"types": [{"name":"film", "size": ">500MB", "extensions":["avi", "mkv"]}]
 
 You can also have multiple inheritance by using the plural version "types" to specify an array of "types" name.
