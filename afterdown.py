@@ -19,6 +19,8 @@ from core.rules import Rule
 print "AfterDown %s" % VERSION
 print "Copyright (C) 2015  Dario Varotto\n"
 
+DROPBOX_KEYFILE = ".afterdown_dropbox_keys.json"
+
 
 class AfterDown(object):
     def get_logger(self, log_path=None, VERBOSE=False):
@@ -137,6 +139,9 @@ class AfterDown(object):
         if self.touched_folders and self.deleteEmptyFolders:
             logger.debug("Touched folders %s", self.touched_folders)
             self.do_delete_touched_folders()
+        if "dropbox" in self.config:
+            self.dropbox_sync()
+
         logger.info(
             "we had {tot} files: {applied} actions taken, {unsure} uncertain, {none} unrecognized.".format(**counters)
         )
@@ -202,6 +207,12 @@ class AfterDown(object):
                 send_mail=False,  # I'll handle the send mail request only when there's an action
             )
             self.logger.addHandler(self.mail_handler)
+        if "dropbox" in config:
+            if "start_torrents_on" in config["dropbox"]:
+                print "Setting dropbox"
+            else:
+                # if we don't need Dropbox, we can drop it's config
+                del config["dropbox"]
         return config
 
     def do_delete_touched_folders(self):
@@ -220,6 +231,53 @@ class AfterDown(object):
                 if folder_path != root:
                     parent_folder = os.path.dirname(folder_path)
                     self.touched_folders.add(parent_folder)
+
+    def dropbox_sync(self):
+        """
+            Try to sync with a dropbox folder for various reason, actually to get a list of torrents
+            to pass to Transmission
+        """
+        try:
+            import dropbox
+        except ImportError:
+            self.logger.error("To use Dropbox syncroniation you need the Dropbox package.")
+            self.logger.error("Use: pip install dropbox.")
+            return
+        if not os.path.isfile("%s" % DROPBOX_KEYFILE):
+            self.logger.error("To sync with Dropbox you need a %s file with app_key and app_secret" % DROPBOX_KEYFILE)
+            return
+        dropbox_config = json.load(file(DROPBOX_KEYFILE, "r"))
+        if "app_key" not in dropbox_config or "app_secret" not in dropbox_config:
+            self.logger.error("The dropbox config should be a json file with with app_key and app_secret")
+            return
+        # everything is ok, we can start the Dropbox OAuth2
+        if "access_token" not in dropbox_config:
+            # we have the app, but no link to an account, ask to authorize
+            app_key, app_secret = dropbox_config["app_key"], dropbox_config["app_secret"]
+            print "Everything is set, going to Dropbox"
+            flow = dropbox.client.DropboxOAuth2FlowNoRedirect(app_key, app_secret)
+            authorize_url = flow.start()
+            print '1. Go to: ' + authorize_url
+            print '2. Click "Allow" (you might have to log in first)'
+            print '3. Copy the authorization code.'
+            code = raw_input("Enter the authorization code here: ").strip()
+            access_token, user_id = flow.finish(code)
+            dropbox_config["access_token"] = access_token
+            self.logger.info("Storing access_token to Dropbox account")
+            with file(DROPBOX_KEYFILE, "w") as f:
+                json.dump(dropbox_config, f)
+        else:
+            # we can reuse the access_token
+            access_token = dropbox_config["access_token"]
+        try:
+            client = dropbox.client.DropboxClient(access_token)
+            print "Sync with Dropbox account %s" % client.account_info()['email']
+            folder_meta = client.metadata("/torrents")
+            for content in filter(lambda meta: meta['mime_type'] == u'application/x-bittorrent',
+                                  folder_meta['contents']):
+                print content['path'], "by", content["modifier"]["display_name"]
+        except dropbox.rest.ErrorResponse as e:
+            self.logger.error(e)
 
 # DONE: keep a list of folder from wich we removed or moved files, and at the end delete them if they are empty
 # DONE: Send mail of the activities

@@ -3,3 +3,6 @@ pytest
 
 # for kodi sync
 requests
+
+# for dropbox sync
+dropbox

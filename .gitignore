@@ -1,6 +1,7 @@
 *.py[cod]
 *.log
 /.idea
+.afterdown_dropbox_keys.json
 
 # the playground for testing:
 tests/playground/target_folder
