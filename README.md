@@ -17,6 +17,28 @@ When some rule apply (and we have only have a rule with max confidence) some act
 At the end we can decide to receive a summary via mail or if a Kodi (ex XBMC) is configured,
 we may want to ask the media center to update the video library when the files are at their place.
 
+Quickstart
+----------
+
+1.	Download the repository or clone it with git
+
+		git clone https://github.com/dariosky/afterdown.git
+
+2.	Edit the example_rules.json file to define your rules,
+	for example setting your TV serie folders and defining your email address
+	to receive the notifications.
+	
+	Save your rules files as *rules.json*. 
+	
+	Note that to send the email, your system should be able to send email,
+	otherwise you can configure something like [Mandrill](http://mandrillapp.com).
+	
+3.	Run afterdown.py, use `afterdown -h` to get the options (you can for example,
+	change the source and destination folder from the command line).
+	
+	If your rules files if different than rules.json, specify the correct name with the
+	`-c <rule_file_name>` command option.
+
 Configuration
 -------------
 

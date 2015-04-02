@@ -1,0 +1,84 @@
+{
+  "source": "torrents/complete",
+  "target": "external/disk",
+
+  "kodi": {
+    "host": "localhost",
+    "requestUpdate": true
+  },
+  "mail": {
+    "to": "your_address@email.com",
+    "subject": "Afterdown status mail",
+    "smtp": "localhost"
+  },
+  "rules": [
+    {
+      "match": "stalker",
+      "type": "Serie",
+      "to": "Serie/Stalker"
+    },
+    {
+      "match": "Big Bang Theory",
+      "type": "Serie",
+      "to": "Serie/Big Bang Theory"
+    },
+    {
+      "match": "House of cards",
+      "type": "Serie",
+      "to": "Serie/House of Cards"
+    },
+    {
+      "match": "Person of Interest",
+      "type": "Serie",
+      "to": "Serie/Person of Interest"
+    },
+    {
+      "match": "sample",
+      "type": "fanta_delete",
+      "priority": 60
+    },
+    {
+      "size": ">500MB",
+      "type": "Video",
+      "to": "Films",
+      "folderSplit": true
+    }
+  ],
+  "types": {
+    "Video": {
+      "extensions": [
+        "avi",
+        "mp4",
+        "mkv",
+        "mov"
+      ]
+    },
+    "music": {
+      "extensions": [
+        "mp3",
+        "wma",
+        "ogg"
+      ]
+    },
+    "subtitles": {
+      "extensions": [
+        "srt",
+        "sub"
+      ]
+    },
+    "serie": {
+      "seasonSplit": true,
+      "types": [
+        "video",
+        "subtitles"
+      ]
+    },
+    "fanta_delete": {
+      "action": "move",
+      "to": "_trash",
+      "priority": 0,
+      "overwrite": "rename",
+      "updateKodi": false
+    }
+  }
+}
