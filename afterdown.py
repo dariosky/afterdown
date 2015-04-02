@@ -4,10 +4,13 @@ import json
 import logging
 import logging.handlers
 import os
+from subprocess import call
+import posixpath
 import sys
+import tempfile
 from core.log import BufferedSmtpHandler
 
-VERSION = "0.031415"
+VERSION = "0.3.0"
 
 try:
     import requests
@@ -209,7 +212,7 @@ class AfterDown(object):
             self.logger.addHandler(self.mail_handler)
         if "dropbox" in config:
             if "start_torrents_on" in config["dropbox"]:
-                print "Setting dropbox"
+                pass
             else:
                 # if we don't need Dropbox, we can drop it's config
                 del config["dropbox"]
@@ -270,14 +273,58 @@ class AfterDown(object):
             # we can reuse the access_token
             access_token = dropbox_config["access_token"]
         try:
-            client = dropbox.client.DropboxClient(access_token)
-            print "Sync with Dropbox account %s" % client.account_info()['email']
-            folder_meta = client.metadata("/torrents")
-            for content in filter(lambda meta: meta['mime_type'] == u'application/x-bittorrent',
-                                  folder_meta['contents']):
-                print content['path'], "by", content["modifier"]["display_name"]
+            if self.config['dropbox'].get("start_torrents_on"):
+                torrents_folder = self.config['dropbox'].get("start_torrents_on")
+                client = dropbox.client.DropboxClient(access_token)
+                print "Sync with Dropbox account %s" % client.account_info()['email']
+                folder_meta = client.metadata(torrents_folder)
+                target_folder = None
+                for content in filter(lambda meta: meta.get('mime_type') == u'application/x-bittorrent',
+                                      folder_meta['contents']):
+                    self.logger.info("%s %s %s" % (content['path'], "by", content["modifier"]["display_name"]))
+
+                    dropbox_move_target = self.config['dropbox'].get('move_them_on')
+                    if dropbox_move_target:
+                        if target_folder is None:
+                            self.logger.debug("Ensuring dropbox folder %s exists." % target_folder)
+                        try:
+                            target_folder = client.file_create_folder(dropbox_move_target)
+                        except dropbox.rest.ErrorResponse as e:
+                            if e.status == 403:
+                                pass
+                            else:
+                                self.logger.error("Error creating Dropbox folder.\n%s" % e.message)
+                    self.process_dropbox_file(client, content)
         except dropbox.rest.ErrorResponse as e:
             self.logger.error(e)
+
+    def process_dropbox_file(self, dropbox_client, filemeta):
+        import dropbox
+        if self.config['dropbox'].get("add_torrent_to_transmission"):
+            # download the file to a temporary folder, then add it to transmission
+            tempfilename = None
+            source_path = filemeta['path']
+            with tempfile.NamedTemporaryFile(prefix="afterdown", suffix="temptorrent", delete=False) as temp:
+                # print "Get from torrent to tempfile %s" % temp.name
+                with dropbox_client.get_file(source_path) as f:
+                    temp.write(f.read())
+                tempfilename = temp.name
+            try:
+                call(["transmission-remote", "-a", tempfilename])
+                dropbox_move_target = self.config['dropbox'].get('move_them_on')
+                if dropbox_move_target:
+                    filename = os.path.basename(source_path)
+                    target_path = posixpath.join(dropbox_move_target, filename)
+                    try:
+                        dropbox_client.file_move(source_path, target_path)
+                    except dropbox.rest.ErrorResponse as e:
+                        self.logger.error("Error moving dropbox file from {source} to {target}.\n{error_message}".format(
+                            source=source_path, target=target_path, error_message=e.message
+                        ))
+            except:
+                self.logger.error("Error running transmission-remote on file {path}".format(path=source_path))
+            os.unlink(tempfilename)
+
 
 # DONE: keep a list of folder from wich we removed or moved files, and at the end delete them if they are empty
 # DONE: Send mail of the activities
