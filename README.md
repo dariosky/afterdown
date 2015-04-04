@@ -68,7 +68,7 @@ Optionally the mail configuration
 	
 	Optionally we can add
 	*	from:	the mail from (and also the username to login on SMTP if password is specified)
-	*	password: the mail password for the user specified in "from"
+	*	password: the mail password for the user specified in "from" (if SMTP needs login)
 	
 	Specifying username and password in a config file is not great, so eventually you can set it on
 	**environment variables**:
@@ -78,6 +78,47 @@ Optionally the mail configuration
 		
 The most important part is of course the rules specifying how the files should be moved.
 They are defined with two groups of settings: rules and types.
+
+Dropbox integration
+-------------------
+
+After applying the rules to the source folder, Afterdown can read a folder on your connected
+Dropbox account in order to search torrent files to add to your local Transmission daemon
+(well, I told you that Afterdown was made mostly to automate a downloader?).
+
+The initial setup require that you connect your account, and actually you have to create
+a Dropbox app in the [Developer Console](https://www.dropbox.com/developers/apps).
+You'll obtain an app_key and an app_secret, you need create a file (in the current folder) named
+`.afterdown_dropbox_keys.json` and you have to put that "secret there":
+
+	{
+		"app_key": "your_app_key"
+		"app_secret": "your_app_secret",
+	}
+
+this file should be kept confidential, and probably should be read and write by only the user
+running afterdown.py. You'll need also write access, because when the app will be linked to
+an account an access_token will be added there as well.
+
+Then in Afterdown configuration files specify that you want the Dropbox sync,
+that would be something like this:
+
+	 "dropbox": {
+        "start_torrents_on": "/torrents",
+        "add_torrent_to_transmission": true,
+        "move_them_on": "/torrents/archive"
+      },
+
+This mean:
+ 
+- search all torrents file in the Dropbox "/torrents" folder
+- add them to Transmission (will invoke `transmission-remote -a <torrentfile>`)
+- if everything is ok, move the torrent file in the "/torrents/archive" Dropbox folder
+
+When Transmission ends the download, it should put the files on the source folder, then when
+Afterdown runs again will move them to the target folder, warns Kodi and you'll be happy
+ever after!
+
 
 Using the rules
 ---------------
