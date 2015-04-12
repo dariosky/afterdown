@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   id="svg2"
+   height="652.6629mm"
+   width="705.96478mm"
+   version="1.1"
+   viewBox="0 0 2501.45 2312.5851"
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="logo.svg"
+   inkscape:export-filename="logo.png"
+   inkscape:export-xdpi="1.95"
+   inkscape:export-ydpi="1.95">
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1536"
+     inkscape:window-height="814"
+     id="namedview11"
+     showgrid="false"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     inkscape:zoom="0.11212869"
+     inkscape:cx="1600.1932"
+     inkscape:cy="939.97039"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg2" />
+  <title
+     id="title4186">Afterdown logo</title>
+  <defs
+     id="defs4">
+    <radialGradient
+       id="radialGradient9584"
+       gradientUnits="userSpaceOnUse"
+       cy="415.82001"
+       cx="-2392.8"
+       gradientTransform="matrix(0.54312,2.0947e-8,-2.5789e-8,0.66866,-1093.2,137.78)"
+       r="1250.7">
+      <stop
+         id="stop9580"
+         stop-color="#00f"
+         offset="0" />
+      <stop
+         id="stop9582"
+         stop-color="#4e009f"
+         offset="1" />
+    </radialGradient>
+  </defs>
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title>Afterdown logo</dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     id="layer1"
+     transform="translate(3643.6,740.48258)">
+    <path
+       id="path3336"
+       d="m -1746,-740.48 c -3.1,0.05 -6.1,0.94 -8.8,2.56 l -544.6,336.62 c -14.4,8.91 -8.6,31.07 8.3,31.79 69.3,2.94 134.3,25.18 188.8,61.99 l -430.1,548.73 a 205.71,205.71 0 0 0 -121.9,-40.28 205.71,205.71 0 0 0 -197,146.65 l -292.9,0 -257.6,-188.44 -241.8,227.51 233.3,224.65 223.3,-157.02 332.8,0 a 205.71,205.71 0 0 0 199.9,158.08 205.71,205.71 0 0 0 107.1,-30.3 l 436.7,557.04 c -54.5,36.9 -119.5,59.1 -188.8,62 -16.9,0.8 -22.7,22.9 -8.3,31.8 l 544.6,336.7 c 2.7,1.6 5.7,2.5 8.8,2.5 11.8,0.2 20.2,-11.2 16.6,-22.5 l -196.8,-609.22 c -5.2,-16.21 -28.3,-15.74 -32.9,0.67 -18.4,66.05 -55.1,123.35 -103.8,167.25 L -2508,551.01 a 205.71,205.71 0 0 0 56.4,-110.79 l 745.1,0 c -4.5,65.48 -27,129.7 -67.6,184.91 -10.1,13.72 3.8,32.19 19.8,26.32 l 600.9,-220.98 c 15,-5.52 15,-26.74 0,-32.26 l -600.9,-220.98 c -2.2,-0.79 -4.5,-1.14 -6.8,-1.03 -13.6,0.65 -21,16.12 -13.1,27.18 40.5,56.38 63.1,121.25 67.7,186.84 l -742.8,0 a 205.71,205.71 0 0 0 -46.6,-114.56 l 433,-552.37 c 48.7,43.94 85.4,101.26 103.8,167.29 4.6,16.412 27.7,16.885 32.9,0.67 l 196.8,-609.27 c 3.6,-11.21 -4.8,-22.66 -16.6,-22.46 z"
+       inkscape:connector-curvature="0"
+       style="fill:url(#radialGradient9584)" />
+  </g>
+</svg>

@@ -1,3 +1,4 @@
+import cgi
 import os
 import random
 import shutil
@@ -7,23 +8,6 @@ from core.matching import try_match_strings
 from core.season_info import get_episode_infos
 
 logger = logging.getLogger("afterdown.rules")
-
-
-class ApplyResult(AttrDict):
-    action = None
-    filepath = None
-    fullpath = None
-    target_fullpath = None  # populated in MOVE action (the full path of move target)
-    target_filepath = None  # as fullpath, but path is relative to the target folder
-
-    def __unicode__(self):
-        result = u"{action}: {filepath}".format(action=self.action, filepath=self.filepath)
-        if self.action == Rule.ACTION_MOVE:
-            result += u" to: %s" % self.target_filepath
-        return result
-
-    def __str__(self):
-        return str(self.__unicode__())
 
 
 class Rule(object):
@@ -45,8 +29,14 @@ class Rule(object):
     ACTION_DELETE = "DELETE"  # delete the file, use with caution
     ACTION_SKIP = "SKIP"  # don't do nothing, just keep the file there
 
+    # some fictional action, they don't do nothing, but can be used for not-rule-action
+    ACTION_DOWNLOAD = "DOWNLOAD"
+    ACTION_UNKNOWN = "UNKNOWN"
+    ACTION_UNSURE = "UNSURE"
+    ACTION_KODI_REFRESH = "Kodi Update"
+
     # define the possible fields
-    fields = ['extensions', 'size', 'priority', 'seasonSplit', 'action', 'to', 'matches', 'name',
+    fields = ['extensions', 'size', 'priority', 'seasonSplit', 'action', 'actionName', 'to', 'matches', 'name',
               'overwrite', 'folderSplit']
 
     def __init__(self, rule_def=None, name=None, config=None):
@@ -64,6 +54,7 @@ class Rule(object):
         self.seasonSplit = False
         self.folderSplit = False
         self.action = self.ACTION_MOVE
+        self.actionName = None  # the optional beautiful action name
         self.to = None
         self.matches = []
         self.types = []
@@ -222,13 +213,22 @@ class Rule(object):
 
     def apply(self, candidate, commit=True):
         # print "{action} {filepath} {to}".format(action=self.action, filepath=candidate['filepath'], to=[self.to])
-        result = ApplyResult()  # the object I will return
+        # the object I will return
+        result = ApplyResult(
+            action=self.action,
+            actionName=self.actionName,
+            candidate=candidate,
+            filepath=candidate['filepath'],
+        )
         if self.action == self.ACTION_DELETE:
-            result.update(dict(action=self.action, candidate=candidate, filepath=candidate['filepath']))
             if commit:
-                os.remove(candidate['fullpath'])
+                try:
+                    os.remove(candidate['fullpath'])
+                except OSError as e:
+                    logger.error("Error deleting {filename}. {error}".format(filename=candidate['filepath'],
+                                                                             error=e))
         elif self.action == self.ACTION_SKIP:
-            result.update(dict(action=self.action, candidate=candidate, filepath=candidate['filepath']))
+            pass
         elif self.action == self.ACTION_MOVE:
             assert self.to, "In move action you have to specify the destination with the 'to' parameter."
             to = self.to
@@ -245,8 +245,6 @@ class Rule(object):
 
             full_target = os.path.join(self.config['target'], to)
             filename = os.path.basename(candidate['fullpath'])
-            result.update(dict(action=self.action,
-                               candidate=candidate, filepath=candidate['filepath']))
             if commit:
                 if not os.path.exists(full_target):
                     logger.info("Creating folder %s" % full_target)
@@ -267,7 +265,12 @@ class Rule(object):
                     else:
                         raise Exception("Invalid overwrite value: %s" % self.overwrite)
                 full_target_path = os.path.join(full_target, filename)
-                shutil.move(candidate['fullpath'], full_target_path)
+                try:
+                    shutil.move(candidate['fullpath'], full_target_path)
+                except OSError as e:
+                    logger.error("Error moving {filename}. {error}".format(filename=candidate['filepath'],
+                                                                           error=e))
+
             else:
                 # no commit so return the name as the file is not on target
                 filename = os.path.basename(candidate['fullpath'])
@@ -276,4 +279,60 @@ class Rule(object):
             result['target_filepath'] = full_target_path[len(self.config['target']) + 1:]
         return result
 
+
 # LATER: the size rule, ad example moving films if their size is >500M, should move also the subtitles with same name?
+
+class ApplyResult(AttrDict):
+    """ The result of an apply action, is derived from a rule, but can have some more property
+        Is also used to pretty print the result in the report
+
+        filepath and action are the minimal infos
+    """
+    action = None
+    actionName = None
+    filepath = None
+    fullpath = None
+    target_fullpath = None  # populated in MOVE action (the full path of move target)
+    target_filepath = None  # as fullpath, but path is relative to the target folder
+    CLASSES = {
+        Rule.ACTION_MOVE: "move",
+        Rule.ACTION_DELETE: "delete",
+        Rule.ACTION_DOWNLOAD: "download",
+        Rule.ACTION_UNKNOWN: "unrecognized",
+        Rule.ACTION_UNSURE: "unrecognized",
+    }
+
+    def __unicode__(self):
+        result = u"{action}: {filepath}".format(action=self.actionName or self.action, filepath=self.filepath)
+        if self.action == Rule.ACTION_MOVE:
+            result += u" to: %s" % self.target_filepath
+        return result
+
+    @property
+    def tokens(self):
+        """
+            Return token descriptions for the action, all tokens are HTML
+        """
+        tokens = [self.actionName or self.action]
+        dirname, filename = os.path.dirname(self.filepath), os.path.basename(self.filepath)
+        if dirname:
+            dirname += os.path.sep
+        tokens.append("{dirname}<b>{filename}</b>".format(dirname=cgi.escape(dirname), filename=cgi.escape(filename)))
+        if self.action == Rule.ACTION_MOVE:
+            tokens.append(cgi.escape(os.path.dirname(self.target_filepath)))
+        return tokens
+
+    @property
+    def classname(self):
+        """
+            The classname to be used to style this row in pretty report
+        """
+        return self.CLASSES.get(self.action)
+
+    @property
+    def important(self):
+        # When a rule apply and is important, it deserves to be sent by mail
+        return self.action not in {Rule.ACTION_SKIP, Rule.ACTION_KODI_REFRESH}
+
+    def __str__(self):
+        return str(self.__unicode__())

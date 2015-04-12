@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # coding: utf-8
+from collections import defaultdict
 import json
 import logging
 import logging.handlers
@@ -8,7 +9,10 @@ from subprocess import call
 import posixpath
 import sys
 import tempfile
-from core.log import BufferedSmtpHandler
+
+from core.email.log import BufferedSmtpHandler
+from core.email.mail_report import AfterMailReport
+
 
 VERSION = "0.3.0"
 
@@ -17,10 +21,10 @@ try:
 except ImportError:
     requests = None
 
-from core.rules import Rule
+from core.rules import Rule, ApplyResult
 
-print "AfterDown %s" % VERSION
-print "Copyright (C) 2015  Dario Varotto\n"
+print ("AfterDown %s" % VERSION)
+print ("Copyright (C) 2015  Dario Varotto\n")
 
 DROPBOX_KEYFILE = ".afterdown_dropbox_keys.json"
 
@@ -29,9 +33,11 @@ class AfterDown(object):
     def get_logger(self, log_path=None, VERBOSE=False):
         l = logging.getLogger("afterdown")
         l.setLevel(logging.DEBUG)
+        # log events to console
         console_handler = logging.StreamHandler(sys.stdout)
         l.setLevel(logging.DEBUG if VERBOSE else logging.INFO)
         l.addHandler(console_handler)
+        # if log_path is defined log also there
         if log_path:
             log_dir = os.path.dirname(log_path)
             if not os.path.isdir(log_dir):
@@ -42,7 +48,8 @@ class AfterDown(object):
         # return the logger now, maybe I will add the mail handler later, after parsing the config
         return l
 
-    def __init__(self, config_file, log_path=None, DEBUG=False, COMMIT=True, VERBOSE=False, override_config=None):
+    def __init__(self, config_file, log_path=None, DEBUG=False, COMMIT=True, VERBOSE=False,
+                 override_config=None):
         self.override_config = override_config
         self.VERBOSE = VERBOSE
         self.COMMIT = COMMIT
@@ -55,7 +62,8 @@ class AfterDown(object):
         self.config = None
         self.deleteEmptyFolders = True
         self.touched_folders = set()  # the folders on source that have been touched (by a MOVE or DELETE)
-        self.mail_handler = None  # the eventual BufferedSmtpHandler, will be flushed when need to send mail
+        self.error_mail_handler = None  # the eventual BufferedSmtpHandler, will be flushed when need to send mail
+        self.report_mail = None  # the AfterMailReport that will send the pretty report
 
     def run(self):
         if self.config is None:
@@ -64,7 +72,7 @@ class AfterDown(object):
         root = os.path.abspath(self.config['source'])
         assert os.path.isdir(root), "Cannot find the defined source %s" % root
 
-        counters = dict(tot=0, unsure=0, none=0, applied=0)  # a counter for the possible cases
+        counters = defaultdict(int)  # a counter for the possible cases
         actions = []
         kodi_update_needed = False
 
@@ -111,18 +119,25 @@ class AfterDown(object):
                         if done.action == Rule.ACTION_MOVE and rule.updateKodi:
                             kodi_update_needed = True
                         logger.info("%s" % done)
-                        if done.action != Rule.ACTION_SKIP:
-                            actions.append(done)
-                            counters['applied'] += 1
-                            if self.mail_handler:
-                                self.mail_handler.send_mail = True
+                        if self.report_mail:
+                            self.report_mail.add_row(done)
+                        counters[done.action] += 1
                     else:
                         counters['unsure'] += 1
                         logger.warning("UNSURE: %s matches %s" % (filepath, matches))
+                        done = ApplyResult(action=Rule.ACTION_UNSURE, filepath=filepath)
+                        # add some forced token to the row (the rule doesn't know how may rules apply)
+                        self.report_mail.add_row(
+                            done,
+                            tokens=done.tokens + ["%d matching rules" % len(rules_by_confidence[max_confidence])])
                 else:
                     logger.info("%s does not match" % filepath)
-                    counters['none'] += 1
-                    # LATER: Check the file is not in use
+                    counters['unknown'] += 1
+                    if self.report_mail:
+                        done = ApplyResult(action=Rule.ACTION_UNKNOWN, filepath=filepath)
+                        self.report_mail.add_row(done)
+
+        # LATER: Check the file is not in use
 
         if kodi_update_needed and self.config.get("kodi", {}).get('requestUpdate', False) and self.COMMIT:
             if not requests:
@@ -135,6 +150,9 @@ class AfterDown(object):
                         'http://{kodi_host}/jsonrpc?request={"jsonrpc":"2.0","method":"VideoLibrary.Scan"}'.format(
                             kodi_host=kodi_host
                         ))
+                    if self.report_mail:
+                        done = ApplyResult(action=Rule.ACTION_KODI_REFRESH, filepath="")
+                        self.report_mail.add_row(done)
                 except Exception as e:
                     logger.error("Errors when trying to communicate with Kodi, please do the Video Sync manually.")
                     logger.error("%s" % e)
@@ -145,11 +163,22 @@ class AfterDown(object):
         if "dropbox" in self.config:
             self.dropbox_sync()
 
-        logger.info(
-            "we had {tot} files: {applied} actions taken, {unsure} uncertain, {none} unrecognized.".format(**counters)
-        )
-        if self.mail_handler:
-            self.mail_handler.flush()
+        summary_tokens = [
+            "we had %d files" % counters['tot'],
+            "%d recognized" % counters["MOVE"] if counters["MOVE"] else None,
+            "%d deleted" % counters["DELETE"] if counters["DELETE"] else None,
+            "%d unknown" % counters["unknown"] if counters["unknown"] else None,
+            "%d unsure" % counters["unsure"] if counters["unsure"] else None,
+        ]
+        summary = ", ".join(filter(lambda x: x, summary_tokens))  # strip empty tokens
+        logger.info(summary)
+        if self.report_mail:
+            self.report_mail.set_summary(summary)
+
+        if self.error_mail_handler:
+            self.error_mail_handler.flush()
+        if self.report_mail:
+            self.report_mail.send()
 
     def read_config(self):
         config = json.load(file(self.config_file))  # read the config form json
@@ -181,7 +210,7 @@ class AfterDown(object):
 
         if "mail" in config:
             default_mail_settings = dict(
-                subject="Afterdown status",
+                subject="Afterdown report",
                 smtp="localhost:25",
             )
             default_mail_settings['from'] = os.getenv("AFTERDOWN_MAIL_FROM")
@@ -197,7 +226,7 @@ class AfterDown(object):
                 config["mail"]["port"] = smtp_port
             else:
                 config["mail"]["port"] = None
-            self.mail_handler = BufferedSmtpHandler(
+            mail_parameters = dict(
                 mailfrom=config["mail"]["from"],
                 mailto=config["mail"]["to"],
                 subject=config["mail"]["subject"] or None,
@@ -207,13 +236,16 @@ class AfterDown(object):
                 smtp_username=config["mail"]["from"],
                 smtp_password=config["mail"]["password"],
                 DEBUG=self.DEBUG,
-                send_mail=False,  # I'll handle the send mail request only when there's an action
             )
-            self.logger.addHandler(self.mail_handler)
+            self.report_mail = AfterMailReport(**mail_parameters)
+            self.error_mail_handler = BufferedSmtpHandler(
+                send_mail=True,  # Always send (when we have events)
+                **mail_parameters
+            )
+            self.error_mail_handler.setLevel(logging.ERROR)  # just send errors with this logger
+            self.logger.addHandler(self.error_mail_handler)
         if "dropbox" in config:
-            if "start_torrents_on" in config["dropbox"]:
-                pass
-            else:
+            if not isinstance(config["dropbox"], dict) or "start_torrents_on" not in config["dropbox"]:
                 # if we don't need Dropbox, we can drop it's config
                 del config["dropbox"]
         return config
@@ -243,7 +275,8 @@ class AfterDown(object):
         try:
             import dropbox
         except ImportError:
-            self.logger.error("To use Dropbox syncroniation you need the Dropbox package.")
+            dropbox = None
+            self.logger.error("To use Dropbox syncronization you need the Dropbox package.")
             self.logger.error("Use: pip install dropbox.")
             return
         if not os.path.isfile("%s" % DROPBOX_KEYFILE):
@@ -288,6 +321,7 @@ class AfterDown(object):
 
     def process_dropbox_file(self, dropbox_client, filemeta):
         import dropbox
+
         if self.config['dropbox'].get("add_torrent_to_transmission"):
             # download the file to a temporary folder, then add it to transmission
             source_path = filemeta['path']
@@ -297,6 +331,9 @@ class AfterDown(object):
                     temp.write(f.read())
             try:
                 call(["transmission-remote", "-a", temp.name])
+                if self.report_mail:
+                    download_result = ApplyResult(action=Rule.ACTION_DOWNLOAD, filepath=source_path)
+                    self.report_mail.add_row(download_result)
                 dropbox_move_target = self.config['dropbox'].get('move_them_on')
                 if dropbox_move_target:
                     filename = os.path.basename(source_path)
@@ -304,9 +341,10 @@ class AfterDown(object):
                     try:
                         dropbox_client.file_move(source_path, target_path)
                     except dropbox.rest.ErrorResponse as e:
-                        self.logger.error("Error moving dropbox file from {source} to {target}.\n{error_message}".format(
-                            source=source_path, target=target_path, error_message=e.message
-                        ))
+                        self.logger.error(
+                            "Error moving dropbox file from {source} to {target}.\n{error_message}".format(
+                                source=source_path, target=target_path, error_message=e.message
+                            ))
             except:
                 self.logger.error("Error running transmission-remote on file {path}".format(path=source_path))
             os.unlink(temp.name)
@@ -322,8 +360,8 @@ if __name__ == '__main__':
     PROJECT_PATH = os.path.dirname(__file__)
 
     parser = argparse.ArgumentParser("Afterdown",
-                                     description="Sort everything in a folder based on some rules you define",
-                                     version=VERSION)
+                                     description="Sort everything in a folder based on some rules you define")
+    parser.add_argument("-v", "--version", action="version", version=VERSION)
     parser.add_argument("--debug",
                         help="Run in debug mode, no file moved, no mail sent",
                         default=False,
@@ -334,8 +372,13 @@ if __name__ == '__main__':
     parser.add_argument("--log",
                         help="Specify the log file path (default afterdown.log in current folder)",
                         default=os.path.join(PROJECT_PATH, "logs", "afterdown.log"))
+    parser.add_argument("--nodropboxsync",
+                        help="Disable Dropbox syncronization",
+                        default=False,
+                        action="store_true")
     parser.add_argument("source", help="override the folder to be monitored", default=None, nargs="?")
     parser.add_argument("target", help="override the destination folder", default=None, nargs="?")
+
     args = parser.parse_args()
 
     override_config = {}
@@ -343,7 +386,8 @@ if __name__ == '__main__':
         override_config["source"] = args.source
     if args.target is not None:
         override_config["target"] = args.target
-
+    if args.nodropboxsync:
+        override_config['dropbox'] = None
     sorter = AfterDown(
         config_file=args.config,
         DEBUG=args.debug,  # When debugging no mail are sent

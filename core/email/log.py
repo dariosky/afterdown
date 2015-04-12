@@ -8,7 +8,7 @@ import smtplib
 
 class BufferedSmtpHandler(BufferingHandler):
     """ This is a memoryhandler buffer, that never flush with big capacity (just to split MB emails)
-    that will
+        that will send a mail using configured smtp at the end
     """
 
     def __init__(self, mailfrom, mailto, subject,
