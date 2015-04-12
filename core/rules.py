@@ -332,7 +332,9 @@ class ApplyResult(AttrDict):
     @property
     def important(self):
         # When a rule apply and is important, it deserves to be sent by mail
-        return self.action not in {Rule.ACTION_SKIP, Rule.ACTION_KODI_REFRESH}
+        return self.action not in {Rule.ACTION_SKIP, Rule.ACTION_KODI_REFRESH,
+                                   Rule.ACTION_UNSURE, Rule.ACTION_UNKNOWN}
+        # TODO: For UNSURE and UNKNOWN should be notified, but possibly once per file
 
     def __str__(self):
         return str(self.__unicode__())
