@@ -1,4 +1,5 @@
 import cgi
+from collections import defaultdict
 import os
 import random
 import shutil
@@ -36,8 +37,12 @@ class Rule(object):
     ACTION_KODI_REFRESH = "Kodi Update"
 
     # define the possible fields
-    fields = ['extensions', 'size', 'priority', 'seasonSplit', 'action', 'actionName', 'to', 'matches', 'name',
+    fields = ['extensions', 'size', 'priority', 'seasonSplit', 'action',
+              'actionName', 'className', 'to', 'matches', 'name',
               'overwrite', 'folderSplit']
+
+    def __getitem__(self, key):
+        return getattr(self, key)
 
     def __init__(self, rule_def=None, name=None, config=None):
         if config is None:
@@ -55,6 +60,7 @@ class Rule(object):
         self.folderSplit = False
         self.action = self.ACTION_MOVE
         self.actionName = None  # the optional beautiful action name
+        self.className = None  # the CSS class to be used on the report
         self.to = None
         self.matches = []
         self.types = []
@@ -215,6 +221,7 @@ class Rule(object):
         # print "{action} {filepath} {to}".format(action=self.action, filepath=candidate['filepath'], to=[self.to])
         # the object I will return
         result = ApplyResult(
+            rule=self,  # a result vinded to a rule
             action=self.action,
             actionName=self.actionName,
             candidate=candidate,
@@ -288,6 +295,7 @@ class ApplyResult(AttrDict):
 
         filepath and action are the minimal infos
     """
+    rule = defaultdict(lambda: None)
     action = None
     actionName = None
     filepath = None
@@ -323,10 +331,12 @@ class ApplyResult(AttrDict):
         return tokens
 
     @property
-    def classname(self):
+    def className(self):
         """
-            The classname to be used to style this row in pretty report
+            The className to be used to style this row in pretty report
         """
+        if self.rule["className"]:
+            return self.rule["className"]
         return self.CLASSES.get(self.action)
 
     @property

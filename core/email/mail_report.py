@@ -63,14 +63,14 @@ class AfterMailReport(object):
         self.summary = ""
         self.max_tokens = 0
 
-    def add_row(self, apply_result, tokens=None, classname=None, important=None):
+    def add_row(self, apply_result, tokens=None, className=None, important=None):
         """ Add the nice row to the HTML, taking tokens and formatting from an ApplyResult instance
             eventually you can force some of the parameters
         """
         if tokens is None:
             tokens = apply_result.tokens
-        if classname is None:
-            classname = apply_result.classname
+        if className is None:
+            className = apply_result.className
         if important is None:
             important = apply_result.important
 
@@ -78,7 +78,7 @@ class AfterMailReport(object):
             self.send_mail = True
         self.rows.append(dict(
             tokens=tokens,
-            classname=classname
+            className=className
         ))
         self.max_tokens = max(self.max_tokens, len(tokens))
 
@@ -102,12 +102,13 @@ class AfterMailReport(object):
         context = {"summary": self.summary}
         if os.path.isfile(LOGO_FILENAME):
             with file(LOGO_FILENAME, "rb") as f:
+                # TODO: Base64 inline images are not supported by many webmail, use mime alternative related
                 logo_b64 = base64.b64encode(f.read())
                 logo_mimetype = mimetypes.guess_type(LOGO_FILENAME)[0]
                 context.update(dict(logo_b64=logo_b64, logo_mimetype=logo_mimetype))
         context['rows'] = "\n".join(["<tr{styleattr}>\n{cells}\n</tr>".format(
-            styleattr=" style='%s'" % MAIL_CSS.get(row['classname']) if row['classname'] and MAIL_CSS.get(
-                row['classname']) else '',
+            styleattr=" style='%s'" % MAIL_CSS.get(row['className']) if row['className'] and MAIL_CSS.get(
+                row['className']) else '',
             cells="\n".join(["\t<td style='padding: 10px 10px'>%s</td>" % cell for cell in row['tokens']])
         ) for row in self.rows])
         # I cant use "format" to parse template cause the css is parsed, so I use a simpler replace for var in context
@@ -129,8 +130,8 @@ class AfterMailReport(object):
             smtp.quit()
             return True
         else:
-            print "in DEBUG mail is save in mail_output.html"
-            # file(os.path.join(os.path.dirname(__file__), "mail_output.html"), "w").write(html)
-            # print msg.as_string()
+            print "in DEBUG mail no mail is sent"
+            file(os.path.join(os.path.dirname(__file__), "mail_output.html"), "w").write(html)
+            print msg.as_string()
 
 
