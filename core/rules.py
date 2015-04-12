@@ -60,7 +60,7 @@ class Rule(object):
         self.types = []
         self.name = None
         self.overwrite = "skip"
-        self.updateKodi = False
+        self.updateKodi = True
 
         self.config = config
 
