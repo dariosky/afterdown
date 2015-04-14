@@ -12,9 +12,10 @@ import tempfile
 
 from core.email.log import BufferedSmtpHandler
 from core.email.mail_report import AfterMailReport
+from core.utils import recursive_update
 
 
-VERSION = "0.3.0"
+VERSION = "0.4.0"
 
 try:
     import requests
@@ -183,7 +184,7 @@ class AfterDown(object):
     def read_config(self):
         config = json.load(file(self.config_file))  # read the config form json
         if self.override_config:
-            config.update(self.override_config)
+            config = recursive_update(config, self.override_config)
         config = self.prepare_config(config)  # validate and prepare config
         return config
 
@@ -376,6 +377,14 @@ if __name__ == '__main__':
                         help="Disable Dropbox syncronization",
                         default=False,
                         action="store_true")
+    parser.add_argument("--nokodi",
+                        help="Disable Kodi updates",
+                        default=False,
+                        action="store_true")
+    parser.add_argument("--mailto",
+                        help="Override the mail recipients",
+                        default=None
+                        )
     parser.add_argument("source", help="override the folder to be monitored", default=None, nargs="?")
     parser.add_argument("target", help="override the destination folder", default=None, nargs="?")
 
@@ -388,6 +397,10 @@ if __name__ == '__main__':
         override_config["target"] = args.target
     if args.nodropboxsync:
         override_config['dropbox'] = None
+    if args.nokodi:
+        override_config['kodi'] = None
+    if args.mailto:
+        override_config['mail'] = {"to": args.mailto}
     sorter = AfterDown(
         config_file=args.config,
         DEBUG=args.debug,  # When debugging no mail are sent

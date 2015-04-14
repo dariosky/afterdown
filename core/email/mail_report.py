@@ -131,7 +131,5 @@ class AfterMailReport(object):
             return True
         else:
             print "in DEBUG mail no mail is sent"
-            file(os.path.join(os.path.dirname(__file__), "mail_output.html"), "w").write(html)
-            print msg.as_string()
-
-
+            # file(os.path.join(os.path.dirname(__file__), "mail_output.html"), "w").write(html)
+            # print msg.as_string()
