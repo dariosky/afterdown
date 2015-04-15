@@ -53,11 +53,15 @@ All paths when not absolute are relative to the current folder.
 *	"source":	Define the source folder
 *	"target":	Define the target folder, this path will be joined with the target of the single rules
 
+(that can be also specified or overriden in the command line)
+
 We can optionally setup the Kodi connection
 
 *	kodi
 	*	"host":	Define the hostname of kodi (default: localhost)
 	*	"requestUpdate": true/false	(if on movement we have to ask Kodi to update)
+	
+From the commandline, you can disable Kodi with the --nokodi option.
 
 Optionally the mail configuration
 
@@ -76,9 +80,6 @@ Optionally the mail configuration
 		AFTERDOWN_MAIL_FROM
 		AFTERDOWN_MAIL_PASSWORD
 		
-The most important part is of course the rules specifying how the files should be moved.
-They are defined with two groups of settings: rules and types.
-
 Dropbox integration
 -------------------
 
@@ -119,9 +120,15 @@ When Transmission ends the download, it should put the files on the source folde
 Afterdown runs again will move them to the target folder, warns Kodi and you'll be happy
 ever after!
 
+If you setup the Dropbox sync in the configuration, you can override and disable it from the commandline
+with the --nodropboxsync option flag.
+
 
 Using the rules
 ---------------
+
+The most important part is of course the rules specifying how the files should be moved.
+They are defined with two groups of settings: rules and types.
 
 Each rules try to match each file found in the source folder,
  and if it match it gets a score called confidence.
