@@ -139,19 +139,25 @@ class AfterDown(object):
                         self.report_mail.add_row(done)
 
         # LATER: Check the file is not in use
-
         if kodi_update_needed and self.config.get("kodi", {}).get('requestUpdate', False) and self.COMMIT:
             if not requests:
                 logger.error("Requests is needed to syncronize with Kodi.")
+                logger.error("Install it with 'pip install requests'.")
             else:
                 kodi_host = self.config['kodi'].get('host', 'localhost')
                 logger.info("Something changed on target folder, asking Kodi to update video library.")
                 try:
                     requests.post(
-                        'http://{kodi_host}/jsonrpc?request={{"jsonrpc":"2.0","method":"VideoLibrary.Scan"}}'.format(
+                        'http://{kodi_host}/jsonrpc'.format(
                             kodi_host=kodi_host
                         ),
                         headers={"Content-Type": "application/json"},
+                        data=json.dumps(dict(
+                            jsonrpc="2.0",
+                            method="VideoLibrary.Scan",
+                            params={},
+                            id=1
+                        )),
                     )
                     if self.report_mail:
                         done = ApplyResult(action=Rule.ACTION_KODI_REFRESH, filepath="")
