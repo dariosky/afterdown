@@ -147,15 +147,18 @@ class AfterDown(object):
                 kodi_host = self.config['kodi'].get('host', 'localhost')
                 logger.info("Something changed on target folder, asking Kodi to update video library.")
                 try:
-                    requests.get(
-                        'http://{kodi_host}/jsonrpc?request={"jsonrpc":"2.0","method":"VideoLibrary.Scan"}'.format(
+                    requests.post(
+                        'http://{kodi_host}/jsonrpc?request={{"jsonrpc":"2.0","method":"VideoLibrary.Scan"}}'.format(
                             kodi_host=kodi_host
-                        ))
+                        ),
+                        headers={"Content-Type": "application/json"},
+                    )
                     if self.report_mail:
                         done = ApplyResult(action=Rule.ACTION_KODI_REFRESH, filepath="")
                         self.report_mail.add_row(done)
                 except Exception as e:
                     logger.error("Errors when trying to communicate with Kodi, please do the Video Sync manually.")
+                    logger.error(kodi_host)
                     logger.error("%s" % e)
 
         if self.touched_folders and self.deleteEmptyFolders:
@@ -210,41 +213,44 @@ class AfterDown(object):
                                   requestUpdate=False)
 
         if "mail" in config:
-            default_mail_settings = dict(
-                subject="Afterdown report",
-                smtp="localhost:25",
-            )
-            default_mail_settings['from'] = os.getenv("AFTERDOWN_MAIL_FROM")
-            default_mail_settings['password'] = os.getenv("AFTERDOWN_MAIL_PASSWORD")
-            for key, value in default_mail_settings.items():
-                if key not in config["mail"]:
-                    config["mail"][key] = value
-            assert config["mail"]["to"], "If you activate the send mail function, specify a recipient \"to\""
-            smtp_host = config["mail"]["smtp"]
-            if ":" in smtp_host:
-                smtp_host, smtp_port = smtp_host.split(":")
-                config["mail"]["smtp"] = smtp_host
-                config["mail"]["port"] = smtp_port
-            else:
-                config["mail"]["port"] = None
-            mail_parameters = dict(
-                mailfrom=config["mail"]["from"],
-                mailto=config["mail"]["to"],
-                subject=config["mail"]["subject"] or None,
-                smtp_host=config["mail"]["smtp"],
-                smtp_port=config["mail"]["port"],
+            if config['mail']:
+                default_mail_settings = dict(
+                    subject="Afterdown report",
+                    smtp="localhost:25",
+                )
+                default_mail_settings['from'] = os.getenv("AFTERDOWN_MAIL_FROM")
+                default_mail_settings['password'] = os.getenv("AFTERDOWN_MAIL_PASSWORD")
+                for key, value in default_mail_settings.items():
+                    if key not in config["mail"]:
+                        config["mail"][key] = value
+                assert config["mail"]["to"], "If you activate the send mail function, specify a recipient \"to\""
+                smtp_host = config["mail"]["smtp"]
+                if ":" in smtp_host:
+                    smtp_host, smtp_port = smtp_host.split(":")
+                    config["mail"]["smtp"] = smtp_host
+                    config["mail"]["port"] = smtp_port
+                else:
+                    config["mail"]["port"] = None
+                mail_parameters = dict(
+                    mailfrom=config["mail"]["from"],
+                    mailto=config["mail"]["to"],
+                    subject=config["mail"]["subject"] or None,
+                    smtp_host=config["mail"]["smtp"],
+                    smtp_port=config["mail"]["port"],
 
-                smtp_username=config["mail"]["from"],
-                smtp_password=config["mail"]["password"],
-                DEBUG=self.DEBUG,
-            )
-            self.report_mail = AfterMailReport(**mail_parameters)
-            self.error_mail_handler = BufferedSmtpHandler(
-                send_mail=True,  # Always send (when we have events)
-                **mail_parameters
-            )
-            self.error_mail_handler.setLevel(logging.ERROR)  # just send errors with this logger
-            self.logger.addHandler(self.error_mail_handler)
+                    smtp_username=config["mail"]["from"],
+                    smtp_password=config["mail"]["password"],
+                    DEBUG=self.DEBUG,
+                )
+                self.report_mail = AfterMailReport(**mail_parameters)
+                self.error_mail_handler = BufferedSmtpHandler(
+                    send_mail=True,  # Always send (when we have events)
+                    **mail_parameters
+                )
+                self.error_mail_handler.setLevel(logging.ERROR)  # just send errors with this logger
+                self.logger.addHandler(self.error_mail_handler)
+            else:
+                del config["mail"]
         if "dropbox" in config:
             if not isinstance(config["dropbox"], dict) or "start_torrents_on" not in config["dropbox"]:
                 # if we don't need Dropbox, we can drop it's config
@@ -381,6 +387,10 @@ if __name__ == '__main__':
                         help="Disable Kodi updates",
                         default=False,
                         action="store_true")
+    parser.add_argument("--nomail",
+                        help="Disable all mails",
+                        default=False,
+                        action="store_true")
     parser.add_argument("--mailto",
                         help="Override the mail recipients",
                         default=None
@@ -399,6 +409,10 @@ if __name__ == '__main__':
         override_config['dropbox'] = None
     if args.nokodi:
         override_config['kodi'] = None
+    if args.nomail:
+        if args.mailto:
+            raise Exception("You can't specify both nomail and mailto")
+        override_config['mail'] = None
     if args.mailto:
         override_config['mail'] = {"to": args.mailto}
     sorter = AfterDown(
