@@ -193,7 +193,7 @@ class Rule(object):
                     extension = extension[1:].lower()  # get the extension lowercased without the initial dot
                 candidate["extension"] = extension
             if not candidate['extension'] in self.extensions:
-                logger.debug("Rejected rule %s for extension" % self)
+                # logger.debug("Rejected rule %s for extension" % self)
                 return False
         if self.matches:
             confidence = try_match_strings(candidate=candidate,
@@ -208,12 +208,12 @@ class Rule(object):
             operator, threshold = self.size  # size is a tuple with operator (=, <, >) and size in bytes
             operator_function = OPERATORS_MAP[operator]
             if not operator_function(size, threshold):
-                logger.debug("Rejected rule {rule} for size: {size}{operator}{threshold}".format(
-                    rule=self,
-                    size=size,
-                    operator=operator,
-                    threshold=threshold,
-                ))
+                # logger.debug("Rejected rule {rule} for size: {size}{operator}{threshold}".format(
+                #     rule=self,
+                #     size=size,
+                #     operator=operator,
+                #     threshold=threshold,
+                # ))
                 return False
         return confidence
 
@@ -342,9 +342,7 @@ class ApplyResult(AttrDict):
     @property
     def important(self):
         # When a rule apply and is important, it deserves to be sent by mail
-        return self.action not in {Rule.ACTION_SKIP, Rule.ACTION_KODI_REFRESH,
-                                   Rule.ACTION_UNSURE, Rule.ACTION_UNKNOWN}
-        # TODO: For UNSURE and UNKNOWN should be notified, but possibly once per file
+        return self.action not in {Rule.ACTION_SKIP, Rule.ACTION_KODI_REFRESH}
 
     def __str__(self):
         return str(self.__unicode__())

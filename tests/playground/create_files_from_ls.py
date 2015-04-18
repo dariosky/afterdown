@@ -1,3 +1,4 @@
+import argparse
 import os
 # This script create a list of file taken from an `ls` output and put them (zero sized) in a destination folder
 # it's used to create test files for Afterdown
@@ -29,6 +30,8 @@ class LSCreator():
         self.destination_folder = destination_folder
 
     def run(self):
+        assert os.path.isfile(self.ls_file), "Can't find ls output file %s" % self.ls_file
+
         # get lines from the ls output
         lines = [line.strip() for line in file(self.ls_file).readlines()]
         lines = filter(lambda x: x, lines)
@@ -41,8 +44,14 @@ class LSCreator():
 
 if __name__ == '__main__':
     PROJECT_PATH = os.path.dirname(__file__)
-    ls_file = os.path.join(PROJECT_PATH, "ls_file.txt")
-    destination_folder = os.path.join(PROJECT_PATH, 'folder_to_monitor')
+    parser = argparse.ArgumentParser("Files from list",
+                                     description="Create directory structure and empty files from the output of"
+                                                 "ls -R1 > output.txt")
+    parser.add_argument("source", help="the output of ls -R1", default=None, nargs="?")
+    parser.add_argument("target", help="the path of the target folder", default=None, nargs="?")
+    args = parser.parse_args()
+    ls_file = args.source or os.path.join(PROJECT_PATH, "ls_file.txt")
+    destination_folder = args.target or os.path.join(PROJECT_PATH, 'folder_to_monitor')
     print "Creating structure from %s" % ls_file
     lc = LSCreator(
         ls_file=ls_file,

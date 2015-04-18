@@ -2,6 +2,7 @@
 *.log
 /.idea
 .afterdown_dropbox_keys.json
+.afterknown
 
 # the playground for testing:
 tests/playground/target_folder

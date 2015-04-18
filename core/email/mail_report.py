@@ -130,6 +130,6 @@ class AfterMailReport(object):
             smtp.quit()
             return True
         else:
-            print "in DEBUG mail no mail is sent"
+            print "In DEBUG mode no mails are sent."
             # file(os.path.join(os.path.dirname(__file__), "mail_output.html"), "w").write(html)
             # print msg.as_string()

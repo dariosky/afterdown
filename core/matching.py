@@ -67,7 +67,7 @@ def try_match_strings(candidate, matches, max_priority):
             if mt['match_func'](filepath, match_string):
                 result = max_priority * mt['confidence'] // 100
                 return result
-    logger.debug("Rejected rule %s doesn't match." % matches)
+    # logger.debug("Rejected rule %s doesn't match." % matches)
     return False
 
 

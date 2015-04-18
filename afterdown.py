@@ -1,6 +1,5 @@
 #!/usr/bin/python
 # coding: utf-8
-from collections import defaultdict
 import json
 import logging
 import logging.handlers
@@ -9,13 +8,15 @@ from subprocess import call
 import posixpath
 import sys
 import tempfile
+from core.countersummary import CounterSummary
 
 from core.email.log import BufferedSmtpHandler
 from core.email.mail_report import AfterMailReport
+from core.knownfiles import KnownFiles
 from core.utils import recursive_update
 
 
-VERSION = "0.4.0"
+VERSION = "0.9.0"
 
 try:
     import requests
@@ -28,6 +29,7 @@ print ("AfterDown %s" % VERSION)
 print ("Copyright (C) 2015  Dario Varotto\n")
 
 DROPBOX_KEYFILE = ".afterdown_dropbox_keys.json"
+DEFAULT_KNOWNFILE = ".afterknown"
 
 
 class AfterDown(object):
@@ -51,10 +53,13 @@ class AfterDown(object):
 
     def __init__(self, config_file, log_path=None, DEBUG=False, COMMIT=True, VERBOSE=False,
                  override_config=None):
+        self.counters = CounterSummary()  # a counter for the possible cases
         self.override_config = override_config
         self.VERBOSE = VERBOSE
         self.COMMIT = COMMIT
         self.DEBUG = DEBUG
+        self.log_path = log_path
+        self.file_logger = None
         self.logger = self.get_logger(log_path=log_path, VERBOSE=VERBOSE)
         assert config_file, "Please provide me a config file."
         if not os.path.isfile(config_file):
@@ -65,23 +70,24 @@ class AfterDown(object):
         self.touched_folders = set()  # the folders on source that have been touched (by a MOVE or DELETE)
         self.error_mail_handler = None  # the eventual BufferedSmtpHandler, will be flushed when need to send mail
         self.report_mail = None  # the AfterMailReport that will send the pretty report
+        self.knownfiles = None
 
     def run(self):
         if self.config is None:
             self.config = self.read_config()
+        self.knownfiles = KnownFiles(self.config["knownfiles"])
 
         root = os.path.abspath(self.config['source'])
         assert os.path.isdir(root), "Cannot find the defined source %s" % root
 
-        counters = defaultdict(int)  # a counter for the possible cases
-        actions = []
+        counters = self.counters
         kodi_update_needed = False
 
         logger = self.logger
         for foldername, dirnames, filenames in os.walk(root, followlinks=True):
             logger.debug(foldername[len(root) + 1:] or "/")
             for filename in filenames:
-                counters['tot'] += 1
+                counters['_tot'] += 1
                 fullpath = os.path.join(foldername, filename)
                 filepath = os.path.join(foldername[len(root) + 1:], filename)
                 # each file found is a possible candidate...
@@ -122,21 +128,33 @@ class AfterDown(object):
                         logger.info("%s" % done)
                         if self.report_mail:
                             self.report_mail.add_row(done)
-                        counters[done.action] += 1
+                        counters[done.actionName or done.action] += 1
                     else:
-                        counters['unsure'] += 1
                         logger.warning("UNSURE: %s matches %s" % (filepath, matches))
-                        done = ApplyResult(action=Rule.ACTION_UNSURE, filepath=filepath)
-                        # add some forced token to the row (the rule doesn't know how may rules apply)
-                        self.report_mail.add_row(
-                            done,
-                            tokens=done.tokens + ["%d matching rules" % len(rules_by_confidence[max_confidence])])
+                        if not self.knownfiles.is_known(filepath):
+                            # warn for unsure files only when they are new
+                            counters['_unsure_new'] += 1
+                            if self.report_mail:
+                                done = ApplyResult(action=Rule.ACTION_UNSURE, filepath=filepath)
+                                # add some forced token to the row (the rule doesn't know how may rules apply)
+                                self.report_mail.add_row(
+                                    done,
+                                    tokens=done.tokens + [
+                                        "%d matching rules" % len(rules_by_confidence[max_confidence])])
+                        else:
+                            logger.debug("Unsure file %s is not new" % filepath)
+                            counters['_unsure_old'] += 1
                 else:
                     logger.info("%s does not match" % filepath)
-                    counters['unknown'] += 1
-                    if self.report_mail:
-                        done = ApplyResult(action=Rule.ACTION_UNKNOWN, filepath=filepath)
-                        self.report_mail.add_row(done)
+                    if not self.knownfiles.is_known(filepath):
+                        counters['_unknown_new'] += 1
+                        # warn for unknow files only when they are new
+                        if self.report_mail:
+                            done = ApplyResult(action=Rule.ACTION_UNKNOWN, filepath=filepath)
+                            self.report_mail.add_row(done)
+                    else:
+                        logger.debug("Unknown file %s is not new" % filepath)
+                        counters['_unknown_old'] += 1
 
         # LATER: Check the file is not in use
         if kodi_update_needed and self.config.get("kodi", {}).get('requestUpdate', False) and self.COMMIT:
@@ -173,14 +191,7 @@ class AfterDown(object):
         if "dropbox" in self.config:
             self.dropbox_sync()
 
-        summary_tokens = [
-            "we had %d files" % counters['tot'],
-            "%d recognized" % counters["MOVE"] if counters["MOVE"] else None,
-            "%d deleted" % counters["DELETE"] if counters["DELETE"] else None,
-            "%d unknown" % counters["unknown"] if counters["unknown"] else None,
-            "%d unsure" % counters["unsure"] if counters["unsure"] else None,
-        ]
-        summary = ", ".join(filter(lambda x: x, summary_tokens))  # strip empty tokens
+        summary = "%s" % counters
         logger.info(summary)
         if self.report_mail:
             self.report_mail.set_summary(summary)
@@ -189,6 +200,10 @@ class AfterDown(object):
             self.error_mail_handler.flush()
         if self.report_mail:
             self.report_mail.send()
+        if not self.DEBUG:
+            self.knownfiles.save()
+        if self.file_logger:
+            self.file_logger.close()
 
     def read_config(self):
         config = json.load(file(self.config_file))  # read the config form json
@@ -257,10 +272,14 @@ class AfterDown(object):
                 self.logger.addHandler(self.error_mail_handler)
             else:
                 del config["mail"]
+
         if "dropbox" in config:
             if not isinstance(config["dropbox"], dict) or "start_torrents_on" not in config["dropbox"]:
                 # if we don't need Dropbox, we can drop it's config
                 del config["dropbox"]
+
+        if "knownfiles" not in config or not config["knownfiles"]:
+            config["knownfiles"] = DEFAULT_KNOWNFILE
         return config
 
     def do_delete_touched_folders(self):
@@ -324,7 +343,6 @@ class AfterDown(object):
                 client = dropbox.client.DropboxClient(access_token)
                 print "Sync with Dropbox account %s" % client.account_info()['email']
                 folder_meta = client.metadata(torrents_folder)
-                target_folder = None
                 for content in filter(lambda meta: meta.get('mime_type') == u'application/x-bittorrent',
                                       folder_meta['contents']):
                     self.logger.info("%s %s %s" % (content['path'], "by", content["modifier"]["display_name"]))
@@ -379,6 +397,10 @@ if __name__ == '__main__':
                         help="Run in debug mode, no file moved, no mail sent",
                         default=False,
                         action="store_true")
+    parser.add_argument("--verbose",
+                        help="Verbose output",
+                        default=False,
+                        action="store_true")
     parser.add_argument("-c", "--config",
                         help="Select the config json file to use (default to rules.json in current folder)",
                         default="rules.json")
@@ -401,6 +423,9 @@ if __name__ == '__main__':
                         help="Override the mail recipients",
                         default=None
                         )
+    parser.add_argument("--knownfiles",
+                        help="Filepath used to save a list of know missed files",
+                        default="")
     parser.add_argument("source", help="override the folder to be monitored", default=None, nargs="?")
     parser.add_argument("target", help="override the destination folder", default=None, nargs="?")
 
@@ -421,10 +446,12 @@ if __name__ == '__main__':
         override_config['mail'] = None
     if args.mailto:
         override_config['mail'] = {"to": args.mailto}
+    if args.knownfiles:
+        override_config['knownfiles'] = args.knownfiles
     sorter = AfterDown(
         config_file=args.config,
         DEBUG=args.debug,  # When debugging no mail are sent
-        VERBOSE=False,  # When verbose we will print on console even debug messages
+        VERBOSE=args.verbose,  # When verbose we will print on console even debug messages
         COMMIT=not args.debug,  # When commit we actually move or delete files from the watched folder
         log_path=args.log,
         override_config=override_config,
