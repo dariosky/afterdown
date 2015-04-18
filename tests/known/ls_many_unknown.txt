@@ -1,0 +1,4 @@
+.:
+deleted.txt
+b.avi
+x.avi

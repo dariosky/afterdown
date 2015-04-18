@@ -1,0 +1,69 @@
+{
+  "source": "source",
+  "target": "target",
+  "rules": [
+    {
+      "matches": ["In Treatment", "ita"],
+      "type": "Serie",
+      "to": "SerieTV/In Treatment"
+    },
+    {
+      "match": "sample",
+      "type": "soft_delete",
+      "priority": 60
+    },
+    {
+      "extensions": [
+        "nfo",
+        "txt"
+      ],
+      "type": "soft_delete",
+      "priority": 0
+    },
+    {
+      "match": "thumbs.db",
+      "type": "soft_delete",
+      "priority": 0
+    }
+  ],
+  "types": {
+    "Video": {
+      "extensions": [
+        "avi",
+        "mp4",
+        "mkv",
+        "mov"
+      ]
+    },
+    "music": {
+      "extensions": [
+        "mp3",
+        "wma",
+        "ogg"
+      ]
+    },
+    "subtitles": {
+      "extensions": [
+        "srt",
+        "sub"
+      ]
+    },
+    "serie": {
+      "actionName": "SERIE",
+      "seasonSplit": true,
+      "types": [
+        "video",
+        "subtitles"
+      ]
+    },
+    "soft_delete": {
+      "action": "move",
+      "actionName": "Soft DELETE",
+      "className": "deleted",
+      "to": "_trash",
+      "priority": 0,
+      "overwrite": "rename",
+      "updateKodi": false
+    }
+  }
+}
