@@ -361,7 +361,7 @@ class AfterDown(object):
                 with dropbox_client.get_file(source_path) as f:
                     temp.write(f.read())
             try:
-                call(["transmission-remote", "-a", temp.name])
+                call(["transmission-remote", "-a", temp.name, "--no-start-paused"])
                 if self.report_mail:
                     download_result = ApplyResult(action=Rule.ACTION_DOWNLOAD, filepath=source_path)
                     self.report_mail.add_row(download_result)
