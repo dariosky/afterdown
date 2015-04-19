@@ -1,8 +1,8 @@
 # coding=utf-8
-import base64
 from email import Charset
+from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-import mimetypes
+from email.MIMEImage import MIMEImage
 import os
 import smtplib
 import textwrap
@@ -24,7 +24,7 @@ MAIL_TEMPLATE = textwrap.dedent("""
 </head>
 <body style='color: #4e009f'>
 <h1 id="header" style="font-family: 'Georgia', serif; text-align: center;">
-	<img src="data:{logo_mimetype};base64,{logo_b64}" alt="" style="vertical-align: middle"/>
+	<img src="cid:afterlogo" alt="" style="vertical-align: middle"/>
 	Afterdown report
 </h1>
 <table style='width: 100%; text-align:center;'>
@@ -100,12 +100,15 @@ class AfterMailReport(object):
         Charset.add_charset('utf-8', Charset.QP, Charset.QP, 'utf-8')
 
         context = {"summary": self.summary}
+
         if os.path.isfile(LOGO_FILENAME):
             with file(LOGO_FILENAME, "rb") as f:
-                # TODO: Base64 inline images are not supported by many webmail, use mime alternative related
-                logo_b64 = base64.b64encode(f.read())
-                logo_mimetype = mimetypes.guess_type(LOGO_FILENAME)[0]
-                context.update(dict(logo_b64=logo_b64, logo_mimetype=logo_mimetype))
+                msg_img = MIMEImage(f.read())
+                f.close()
+                msg_img.add_header('Content-ID', 'afterlogo')
+        else:
+            msg_img = None
+
         context['rows'] = "\n".join(["<tr{styleattr}>\n{cells}\n</tr>".format(
             styleattr=" style='%s'" % MAIL_CSS.get(row['className']) if row['className'] and MAIL_CSS.get(
                 row['className']) else '',
@@ -116,11 +119,20 @@ class AfterMailReport(object):
         for key in context:
             html = html.replace("{%s}" % key, context[key])
 
-        msg = MIMEText(html, _subtype='html', _charset='utf-8')
+        msg = MIMEMultipart()
         msg["From"] = self.mailfrom
-        msg["To"] = recipients[0]
+        msg["To"] = ", ".join(recipients)
         msg["Subject"] = self.subject
-        msg["X-MC-Track"] = "no,no" # if you are using Mandrill as SMPT, set it as don't track
+        msg["X-MC-Track"] = "no,no"  # if you are using Mandrill as SMPT, set it as don't track
+
+        msgAlternative = MIMEMultipart('alternative')
+        msg.attach(msgAlternative)
+        html = MIMEText(html, _subtype='html', _charset='utf-8')
+        msgAlternative.attach(html)
+
+        if msg_img:
+            msg.attach(msg_img)
+            msg.mixed_subtype = 'related'
 
         if not self.DEBUG:
             smtp = smtplib.SMTP(self.smtp_host, port)
@@ -131,5 +143,6 @@ class AfterMailReport(object):
             return True
         else:
             print "In DEBUG mode no mails are sent."
-            # file(os.path.join(os.path.dirname(__file__), "mail_output.html"), "w").write(html)
+            # file(os.path.join(os.path.dirname(__file__), "mail_output.html"), "w").write(msg.as_string())
             # print msg.as_string()
+
