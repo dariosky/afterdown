@@ -59,16 +59,23 @@ def try_match_strings(candidate, matches, max_priority):
         Check the match with various level of confidency, degrading the priority
         an exact contain match gives full priority, a contain ignoring [\s\.-_] gives 20% less confidence...
     """
-    for mt in MATCH_TESTS:
-        filepath = candidate['filepath']
-        if 'prepare_filepath' in mt:
-            filepath = mt['prepare_filepath'](filepath)
-        for match_string in matches:
+    result = 0
+    for match_string in matches:
+        string_confidence = 0
+        match = False
+        for mt in MATCH_TESTS:
+            filepath = candidate['filepath']
+            if 'prepare_filepath' in mt:
+                filepath = mt['prepare_filepath'](filepath)
             if mt['match_func'](filepath, match_string):
-                result = max_priority * mt['confidence'] // 100
-                return result
-    # logger.debug("Rejected rule %s doesn't match." % matches)
-    return False
+                match = True
+                string_confidence = max(string_confidence, max_priority * mt['confidence'] // 100)
+        # logger.debug("Rejected rule %s doesn't match." % matches)
+        if not match:
+            return False
+        else:
+            result = max(result, string_confidence)
+    return result
 
 
 if __name__ == '__main__':

@@ -13,6 +13,29 @@ def test_match_exact_string():
     ) == 100
 
 
+def test_match_in_rule_as_and():
+    assert try_match_strings(
+        candidate=dict(filepath="Big Bang Theory"),
+        matches=['big bang Theory'],
+        max_priority=100,
+    ) == 100
+    assert try_match_strings(
+        candidate=dict(filepath="Big Bang Theory ITA"),
+        matches=['ita'],
+        max_priority=100,
+    ) == 100
+    assert try_match_strings(
+        candidate=dict(filepath="Big Bang Theory ITA"),
+        matches=['Big bang theory', 'ita'],
+        max_priority=100,
+    ) == 100
+    assert try_match_strings(
+        candidate=dict(filepath="Big Bang Theory"),
+        matches=['Big bang theory', 'ita'],
+        max_priority=100,
+    ) == 0
+
+
 def test_match_spaced_string():
     assert try_match_strings(
         candidate=dict(filepath="I have a Bigbang-THEORY.in.a.video.avi"),
