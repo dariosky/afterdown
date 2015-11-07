@@ -1,0 +1,5 @@
+.:
+Accènted one.txt
+
+./Foldér:
+accentd àgain two.txt

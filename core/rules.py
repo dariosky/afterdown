@@ -48,7 +48,7 @@ class Rule(object):
         if config is None:
             previous_rules = {}
         else:
-            previous_rules = config['types']
+            previous_rules = config.get('types', {})
         if rule_def is None:
             rule_def = {}
 
@@ -163,7 +163,8 @@ class Rule(object):
                     value = value[len(possible_operator):]
             value = value.lower()
             if value.endswith("b"):
-                value = value[:-1]  # trim the eventual ending B, the size will end in MB, KB or M, K
+                value = value[
+                        :-1]  # trim the eventual ending B, the size will end in MB, KB or M, K
             multiplier = 1
             if value.endswith("m"):
                 multiplier = 1024 * 1024
@@ -190,7 +191,8 @@ class Rule(object):
             if "extension" not in candidate:
                 extension = os.path.splitext(candidate['filepath'])[1]
                 if extension:
-                    extension = extension[1:].lower()  # get the extension lowercased without the initial dot
+                    extension = extension[
+                                1:].lower()  # get the extension lowercased without the initial dot
                 candidate["extension"] = extension
             if not candidate['extension'] in self.extensions:
                 # logger.debug("Rejected rule %s for extension" % self)
@@ -232,8 +234,9 @@ class Rule(object):
                 try:
                     os.remove(candidate['fullpath'])
                 except OSError as e:
-                    logger.error("Error deleting {filename}. {error}".format(filename=candidate['filepath'],
-                                                                             error=e))
+                    logger.error(
+                        "Error deleting {filename}. {error}".format(filename=candidate['filepath'],
+                                                                    error=e))
         elif self.action == self.ACTION_SKIP:
             pass
         elif self.action == self.ACTION_MOVE:
@@ -275,8 +278,9 @@ class Rule(object):
                 try:
                     shutil.move(candidate['fullpath'], full_target_path)
                 except OSError as e:
-                    logger.error("Error moving {filename}. {error}".format(filename=candidate['filepath'],
-                                                                           error=e))
+                    logger.error(
+                        "Error moving {filename}. {error}".format(filename=candidate['filepath'],
+                                                                  error=e))
 
             else:
                 # no commit so return the name as the file is not on target
@@ -311,7 +315,8 @@ class ApplyResult(AttrDict):
     }
 
     def __unicode__(self):
-        result = u"{action}: {filepath}".format(action=self.actionName or self.action, filepath=self.filepath)
+        result = u"{action}: {filepath}".format(action=self.actionName or self.action,
+                                                filepath=self.filepath)
         if self.action == Rule.ACTION_MOVE:
             result += u" to: %s" % self.target_filepath
         return result
@@ -325,7 +330,8 @@ class ApplyResult(AttrDict):
         dirname, filename = os.path.dirname(self.filepath), os.path.basename(self.filepath)
         if dirname:
             dirname += os.path.sep
-        tokens.append("{dirname}<b>{filename}</b>".format(dirname=cgi.escape(dirname), filename=cgi.escape(filename)))
+        tokens.append("{dirname}<b>{filename}</b>".format(dirname=cgi.escape(dirname),
+                                                          filename=cgi.escape(filename)))
         if self.action == Rule.ACTION_MOVE:
             tokens.append(cgi.escape(os.path.dirname(self.target_filepath)))
         return tokens

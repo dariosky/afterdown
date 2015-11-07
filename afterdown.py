@@ -16,7 +16,7 @@ from core.knownfiles import KnownFiles
 from core.utils import recursive_update
 
 
-VERSION = "0.9.0"
+VERSION = "0.9.1"
 
 try:
     import requests
@@ -125,7 +125,7 @@ class AfterDown(object):
                             self.touched_folders.add(touched_folder)
                         if done.action == Rule.ACTION_MOVE and rule.updateKodi:
                             kodi_update_needed = True
-                        logger.info("%s" % done)
+                        logger.info(u"%s" % done)
                         if self.report_mail:
                             self.report_mail.add_row(done)
                         counters[done.actionName or done.action] += 1
@@ -136,7 +136,8 @@ class AfterDown(object):
                             counters['_unsure_new'] += 1
                             if self.report_mail:
                                 done = ApplyResult(action=Rule.ACTION_UNSURE, filepath=filepath)
-                                # add some forced token to the row (the rule doesn't know how may rules apply)
+                                # add some forced token to the row
+                                # (the rule doesn't know how may rules apply)
                                 self.report_mail.add_row(
                                     done,
                                     tokens=done.tokens + [
@@ -377,7 +378,7 @@ class AfterDown(object):
                                 source=source_path, target=target_path, error_message=e.message
                             ))
             except:
-                self.logger.error("Error running transmission-remote on file {path}".format(path=source_path))
+                self.logger.error(u"Error running transmission-remote on file {path}".format(path=source_path))
             os.unlink(temp.name)
 
 

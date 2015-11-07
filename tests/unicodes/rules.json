@@ -1,0 +1,14 @@
+{
+  "source": "folder_to_monitor",
+  "target": "target_folder",
+  "rules": [
+    {
+      "match": "one",
+      "to": "Serie/one"
+    },
+    {
+      "match": "two",
+      "to": "Serie/two"
+    }
+  ]
+}
