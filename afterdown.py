@@ -8,6 +8,7 @@ import os
 from subprocess import call
 import posixpath
 import sys
+import datetime
 from six.moves import input
 import tempfile
 from core.countersummary import CounterSummary
@@ -16,7 +17,6 @@ from core.email.log import BufferedSmtpHandler
 from core.email.mail_report import AfterMailReport
 from core.knownfiles import KnownFiles
 from core.utils import recursive_update
-
 
 VERSION = "0.9.1"
 
@@ -27,8 +27,8 @@ except ImportError:
 
 from core.rules import Rule, ApplyResult
 
-print ("AfterDown %s" % VERSION)
-print ("Copyright (C) 2015  Dario Varotto\n")
+print("AfterDown %s" % VERSION)
+print("Copyright (C) 2015-%s  Dario Varotto\n" % datetime.date.today().year)
 
 DROPBOX_KEYFILE = ".afterdown_dropbox_keys.json"
 DEFAULT_KNOWNFILE = ".afterknown"
@@ -48,7 +48,8 @@ class AfterDown(object):
             if not os.path.isdir(log_dir):
                 os.makedirs(log_dir)
             self.file_logger = logging.FileHandler(log_path)
-            self.file_logger.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+            self.file_logger.setFormatter(
+                logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
             l.addHandler(self.file_logger)
         # return the logger now, maybe I will add the mail handler later, after parsing the config
         return l
@@ -143,7 +144,8 @@ class AfterDown(object):
                                 self.report_mail.add_row(
                                     done,
                                     tokens=done.tokens + [
-                                        "%d matching rules" % len(rules_by_confidence[max_confidence])])
+                                        "%d matching rules" % len(
+                                            rules_by_confidence[max_confidence])])
                         else:
                             logger.debug("Unsure file %s is not new" % filepath)
                             counters['_unsure_old'] += 1
@@ -160,13 +162,15 @@ class AfterDown(object):
                         counters['_unknown_old'] += 1
 
         # LATER: Check the file is not in use
-        if kodi_update_needed and self.config.get("kodi", {}).get('requestUpdate', False) and self.COMMIT:
+        if kodi_update_needed and self.config.get("kodi", {}).get('requestUpdate',
+                                                                  False) and self.COMMIT:
             if not requests:
                 logger.error("Requests is needed to syncronize with Kodi.")
                 logger.error("Install it with 'pip install requests'.")
             else:
                 kodi_host = self.config['kodi'].get('host', 'localhost')
-                logger.info("Something changed on target folder, asking Kodi to update video library.")
+                logger.info(
+                    "Something changed on target folder, asking Kodi to update video library.")
                 try:
                     requests.post(
                         'http://{kodi_host}/jsonrpc'.format(
@@ -184,7 +188,8 @@ class AfterDown(object):
                         done = ApplyResult(action=Rule.ACTION_KODI_REFRESH, filepath="")
                         self.report_mail.add_row(done)
                 except Exception as e:
-                    logger.error("Errors when trying to communicate with Kodi, please do the Video Sync manually.")
+                    logger.error(
+                        "Errors when trying to communicate with Kodi, please do the Video Sync manually.")
                     logger.error(kodi_host)
                     logger.error("%s" % e)
 
@@ -247,7 +252,8 @@ class AfterDown(object):
                 for key, value in default_mail_settings.items():
                     if key not in config["mail"]:
                         config["mail"][key] = value
-                assert config["mail"]["to"], "If you activate the send mail function, specify a recipient \"to\""
+                assert config["mail"][
+                    "to"], "If you activate the send mail function, specify a recipient \"to\""
                 smtp_host = config["mail"]["smtp"]
                 if ":" in smtp_host:
                     smtp_host, smtp_port = smtp_host.split(":")
@@ -277,7 +283,8 @@ class AfterDown(object):
                 del config["mail"]
 
         if "dropbox" in config:
-            if not isinstance(config["dropbox"], dict) or "start_torrents_on" not in config["dropbox"]:
+            if not isinstance(config["dropbox"], dict) or "start_torrents_on" not in config[
+                "dropbox"]:
                 # if we don't need Dropbox, we can drop it's config
                 del config["dropbox"]
 
@@ -315,11 +322,13 @@ class AfterDown(object):
             self.logger.error("Use: pip install dropbox.")
             return
         if not os.path.isfile("%s" % DROPBOX_KEYFILE):
-            self.logger.error("To sync with Dropbox you need a %s file with app_key and app_secret" % DROPBOX_KEYFILE)
+            self.logger.error(
+                "To sync with Dropbox you need a %s file with app_key and app_secret" % DROPBOX_KEYFILE)
             return
         dropbox_config = json.load(open(DROPBOX_KEYFILE, "r"))
         if "app_key" not in dropbox_config or "app_secret" not in dropbox_config:
-            self.logger.error("The dropbox config should be a json file with with app_key and app_secret")
+            self.logger.error(
+                "The dropbox config should be a json file with with app_key and app_secret")
             return
         # everything is ok, we can start the Dropbox OAuth2
         if "access_token" not in dropbox_config:
@@ -346,9 +355,11 @@ class AfterDown(object):
                 client = dropbox.client.DropboxClient(access_token)
                 print("Sync with Dropbox account %s" % client.account_info()['email'])
                 folder_meta = client.metadata(torrents_folder)
-                for content in filter(lambda meta: meta.get('mime_type') == u'application/x-bittorrent',
-                                      folder_meta['contents']):
-                    self.logger.info("%s %s %s" % (content['path'], "by", content["modifier"]["display_name"]))
+                for content in filter(
+                        lambda meta: meta.get('mime_type') == u'application/x-bittorrent',
+                        folder_meta['contents']):
+                    self.logger.info(
+                        "%s %s %s" % (content['path'], "by", content["modifier"]["display_name"]))
                     self.process_dropbox_file(client, content)
         except dropbox.rest.ErrorResponse as e:
             self.logger.error(e)
@@ -359,7 +370,8 @@ class AfterDown(object):
         if self.config['dropbox'].get("add_torrent_to_transmission"):
             # download the file to a temporary folder, then add it to transmission
             source_path = filemeta['path']
-            with tempfile.NamedTemporaryFile(prefix="afterdown", suffix="temptorrent", delete=False) as temp:
+            with tempfile.NamedTemporaryFile(prefix="afterdown", suffix="temptorrent",
+                                             delete=False) as temp:
                 # print "Get from torrent to tempfile %s" % temp.name
                 with dropbox_client.get_file(source_path) as f:
                     temp.write(f.read())
@@ -380,7 +392,8 @@ class AfterDown(object):
                                 source=source_path, target=target_path, error_message=e.message
                             ))
             except:
-                self.logger.error(u"Error running transmission-remote on file {path}".format(path=source_path))
+                self.logger.error(
+                    u"Error running transmission-remote on file {path}".format(path=source_path))
             os.unlink(temp.name)
 
 
@@ -429,7 +442,8 @@ if __name__ == '__main__':
     parser.add_argument("--knownfiles",
                         help="Filepath used to save a list of know missed files",
                         default="")
-    parser.add_argument("source", help="override the folder to be monitored", default=None, nargs="?")
+    parser.add_argument("source", help="override the folder to be monitored", default=None,
+                        nargs="?")
     parser.add_argument("target", help="override the destination folder", default=None, nargs="?")
 
     args = parser.parse_args()
@@ -455,7 +469,8 @@ if __name__ == '__main__':
         config_file=args.config,
         DEBUG=args.debug,  # When debugging no mail are sent
         VERBOSE=args.verbose,  # When verbose we will print on console even debug messages
-        COMMIT=not args.debug,  # When commit we actually move or delete files from the watched folder
+        COMMIT=not args.debug,
+        # When commit we actually move or delete files from the watched folder
         log_path=args.log,
         override_config=override_config,
     )
