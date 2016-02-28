@@ -48,7 +48,8 @@ def regex_match(filename, match_string):
 
 MATCH_TESTS = [
     dict(confidence=100, match_func=regex_match),
-    dict(confidence=100, match_func=full_case_insensitive_match, prepare_filepath=lambda x: x.lower()),
+    dict(confidence=100, match_func=full_case_insensitive_match,
+         prepare_filepath=lambda x: x.lower()),
     dict(confidence=80, match_func=justwords_case_insensitive_match,
          prepare_filepath=lambda x: remove_special_chars(x).lower()),
 ]
@@ -82,4 +83,4 @@ if __name__ == '__main__':
     pat = '\d+\ cats[\w ]+\.avi'
     repat = js_to_py_re('/' + pat + '/')
     s = "44 cats in row by 3 with the remainder of 2.avi"
-    print repat(s)
+    print(repat(s))

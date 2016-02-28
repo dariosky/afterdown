@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # coding: utf-8
+from __future__ import print_function
 import json
 import logging
 import logging.handlers
@@ -7,6 +8,7 @@ import os
 from subprocess import call
 import posixpath
 import sys
+from six.moves import input
 import tempfile
 from core.countersummary import CounterSummary
 
@@ -207,7 +209,7 @@ class AfterDown(object):
             self.file_logger.close()
 
     def read_config(self):
-        config = json.load(file(self.config_file))  # read the config form json
+        config = json.load(open(self.config_file))  # read the config form json
         if self.override_config:
             config = recursive_update(config, self.override_config)
         config = self.prepare_config(config)  # validate and prepare config
@@ -315,7 +317,7 @@ class AfterDown(object):
         if not os.path.isfile("%s" % DROPBOX_KEYFILE):
             self.logger.error("To sync with Dropbox you need a %s file with app_key and app_secret" % DROPBOX_KEYFILE)
             return
-        dropbox_config = json.load(file(DROPBOX_KEYFILE, "r"))
+        dropbox_config = json.load(open(DROPBOX_KEYFILE, "r"))
         if "app_key" not in dropbox_config or "app_secret" not in dropbox_config:
             self.logger.error("The dropbox config should be a json file with with app_key and app_secret")
             return
@@ -323,13 +325,13 @@ class AfterDown(object):
         if "access_token" not in dropbox_config:
             # we have the app, but no link to an account, ask to authorize
             app_key, app_secret = dropbox_config["app_key"], dropbox_config["app_secret"]
-            print "Everything is set, going to Dropbox"
+            print("Everything is set, going to Dropbox")
             flow = dropbox.client.DropboxOAuth2FlowNoRedirect(app_key, app_secret)
             authorize_url = flow.start()
-            print '1. Go to: ' + authorize_url
-            print '2. Click "Allow" (you might have to log in first)'
-            print '3. Copy the authorization code.'
-            code = raw_input("Enter the authorization code here: ").strip()
+            print('1. Go to: ' + authorize_url)
+            print('2. Click "Allow" (you might have to log in first)')
+            print('3. Copy the authorization code.')
+            code = input("Enter the authorization code here: ").strip()
             access_token, user_id = flow.finish(code)
             dropbox_config["access_token"] = access_token
             self.logger.info("Storing access_token to Dropbox account")
@@ -342,7 +344,7 @@ class AfterDown(object):
             if self.config['dropbox'].get("start_torrents_on"):
                 torrents_folder = self.config['dropbox'].get("start_torrents_on")
                 client = dropbox.client.DropboxClient(access_token)
-                print "Sync with Dropbox account %s" % client.account_info()['email']
+                print("Sync with Dropbox account %s" % client.account_info()['email'])
                 folder_meta = client.metadata(torrents_folder)
                 for content in filter(lambda meta: meta.get('mime_type') == u'application/x-bittorrent',
                                       folder_meta['contents']):

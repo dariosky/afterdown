@@ -6,3 +6,6 @@ requests
 
 # for dropbox sync
 dropbox
+
+# python 2to3
+six
