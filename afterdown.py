@@ -172,7 +172,7 @@ class AfterDown(object):
                 logger.info(
                     "Something changed on target folder, asking Kodi to update video library.")
                 try:
-                    requests.post(
+                    response = requests.post(
                         'http://{kodi_host}/jsonrpc'.format(
                             kodi_host=kodi_host
                         ),
@@ -184,12 +184,16 @@ class AfterDown(object):
                             id=1
                         )),
                     )
+                    if response.status_code != 200 or response.json().get('result') != 'OK':
+                        logger.error(
+                            "Update Kody library failed, check jsonrpc is enabled."
+                        )
                     if self.report_mail:
                         done = ApplyResult(action=Rule.ACTION_KODI_REFRESH, filepath="")
                         self.report_mail.add_row(done)
                 except Exception as e:
                     logger.error(
-                        "Errors when trying to communicate with Kodi, please do the Video Sync manually.")
+                        "Errors when trying to communicate with Kodi, you'll have to update your video library manually.")
                     logger.error(kodi_host)
                     logger.error("%s" % e)
 
