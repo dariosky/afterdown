@@ -119,9 +119,6 @@ class Rule(object):
             definition=", ".join(definition) if definition else "-"
         )
 
-    def __unicode__(self):
-        return unicode(self.__str__())
-
     def add_rule(self, parent_rule):
         """
         Add to current rules. Actually it means: all list fields are appended, the others are overwritten

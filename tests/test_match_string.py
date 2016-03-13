@@ -45,6 +45,8 @@ def test_match_spaced_string():
 
 
 def test_match_regex():
-    score = try_match_strings(candidate=dict(filepath="44 cats in row by 3 with the remainder of 2.avi"),
-                              matches=['/\d+\ cats[\w ]+\.avi/'], max_priority=100, )
+    score = try_match_strings(
+        candidate=dict(filepath="44 cats in row by 3 with the remainder of 2.avi"),
+        matches=['/\d+\ cats[\w ]+\.avi/'], max_priority=100,
+    )
     assert score == 100

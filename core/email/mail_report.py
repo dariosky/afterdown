@@ -1,4 +1,5 @@
 # coding=utf-8
+from __future__ import print_function
 from email import Charset
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -142,7 +143,7 @@ class AfterMailReport(object):
             smtp.quit()
             return True
         else:
-            print "In DEBUG mode no mails are sent."
+            print("In DEBUG mode no mails are sent.")
             # file(os.path.join(os.path.dirname(__file__), "mail_output.html"), "w").write(msg.as_string())
             # print msg.as_string()
 

@@ -1,11 +1,11 @@
+from __future__ import print_function
 from email.mime.text import MIMEText
 import logging
 from logging.handlers import BufferingHandler
 import smtplib
 
+
 # code based on this gist by Viany Sajip: https://gist.github.com/anonymous/1379446
-
-
 class BufferedSmtpHandler(BufferingHandler):
     """ This is a memoryhandler buffer, that never flush with big capacity (just to split MB emails)
         that will send a mail using configured smtp at the end
@@ -38,7 +38,8 @@ class BufferedSmtpHandler(BufferingHandler):
                 try:
                     port = self.smtp_port
                     recipients = self.mailto.split(",")
-                    print ("Sending mail" if not self.DEBUG else "Would send mail") + " to %s" % recipients
+                    print(("Sending mail" if not self.DEBUG else "Would send mail") +
+                          " to %s" % recipients)
                     msg = MIMEText("\r\n".join(map(self.format, self.buffer)), _charset="utf-8")
                     msg["From"] = self.mailfrom
                     msg["To"] = recipients[0]
@@ -51,9 +52,10 @@ class BufferedSmtpHandler(BufferingHandler):
                         smtp.sendmail(self.mailfrom, recipients, msg.as_string())
                         smtp.quit()
                     else:
-                        print "in DEBUG no mail will be sent."
+                        print()
+                        "in DEBUG no mail will be sent."
                 except Exception as e:
-                    print e
+                    print(e)
                     raise e
             self.buffer = []
             self.send_mail = self._default_send_mail

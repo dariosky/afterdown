@@ -1,3 +1,4 @@
+from __future__ import print_function
 import argparse
 import os
 
@@ -14,7 +15,7 @@ def scan_ls_file(lines, destination_folder, only_folders=True):
             dir_name = line[:-1]
             current_folder = os.path.abspath(os.path.join(destination_folder, dir_name))
             if not os.path.isdir(current_folder):
-                print "creating %s" % current_folder
+                print("creating %s" % current_folder)
                 os.makedirs(current_folder)
         else:
             if only_folders:
@@ -23,7 +24,7 @@ def scan_ls_file(lines, destination_folder, only_folders=True):
             if os.path.isdir(maybe_file_path):  # this file is not a file, is a folder
                 continue
             if not os.path.isfile(maybe_file_path):
-                print "\t%s" % maybe_file_path
+                print("\t%s" % maybe_file_path)
                 open(maybe_file_path, 'a').close()
 
 
@@ -36,7 +37,7 @@ class LSCreator(object):
         assert os.path.isfile(self.ls_file), "Can't find ls output file %s" % self.ls_file
 
         # get lines from the ls output
-        lines = [line.strip().decode('utf-8') for line in file(self.ls_file).readlines()]
+        lines = [line.strip().decode('utf-8') for line in open(self.ls_file).readlines()]
         lines = filter(lambda x: x, lines)
 
         # Do a first scan creating folders...
@@ -56,7 +57,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     ls_file = args.source or os.path.join(PROJECT_PATH, "ls_file.txt")
     destination_folder = args.target or os.path.join(PROJECT_PATH, 'folder_to_monitor')
-    print "Creating structure from %s" % ls_file
+    print("Creating structure from %s" % ls_file)
     lc = LSCreator(
         ls_file=ls_file,
         destination_folder=destination_folder,

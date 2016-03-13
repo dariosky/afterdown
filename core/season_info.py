@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import re
 
@@ -25,4 +26,4 @@ def get_episode_infos(filepath):
 
 
 if __name__ == '__main__':
-    print get_episode_infos('01 - The episode name.mp4')
+    print(get_episode_infos('01 - The episode name.mp4'))

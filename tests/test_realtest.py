@@ -1,4 +1,6 @@
 # Test to populate the folder to monitor (using create_files_from_ls) run the rules and check the results
+from __future__ import print_function
+from __future__ import print_function
 import os
 from afterdown import AfterDown
 import pytest
@@ -18,7 +20,7 @@ def playground_folder(request):
 
     ls_file = os.path.join(PLAYGROUND_FOLDER, "ls_file.txt")
     source_folder = os.path.join(PLAYGROUND_FOLDER, 'folder_to_monitor')
-    print "Creating structure from %s" % ls_file
+    print("Creating structure from %s" % ls_file)
     lc = LSCreator(
         ls_file=ls_file,
         destination_folder=source_folder,
@@ -42,7 +44,7 @@ def playground_folder(request):
 
     # and after all the tests we can delete the target and source folders
     def destroy_fixtures():
-        print "Destroying Fixtures"
+        print("Destroying Fixtures")
         shutil.rmtree(source_folder)
         shutil.rmtree(target_folder)
         sorter.file_logger.close()
