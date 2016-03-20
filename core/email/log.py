@@ -1,9 +1,8 @@
 from __future__ import print_function
-from email.mime.text import MIMEText
 import logging
-from logging.handlers import BufferingHandler
 import smtplib
-
+from email.mime.text import MIMEText
+from logging.handlers import BufferingHandler
 
 # code based on this gist by Viany Sajip: https://gist.github.com/anonymous/1379446
 class BufferedSmtpHandler(BufferingHandler):
@@ -52,8 +51,7 @@ class BufferedSmtpHandler(BufferingHandler):
                         smtp.sendmail(self.mailfrom, recipients, msg.as_string())
                         smtp.quit()
                     else:
-                        print()
-                        "in DEBUG no mail will be sent."
+                        print("in DEBUG no mail will be sent.")
                 except Exception as e:
                     print(e)
                     raise e

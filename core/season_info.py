@@ -4,7 +4,7 @@ import re
 
 RE_GET_SEASON_N_EPISODE = re.compile(r'S(\d+)E(\d+)', re.IGNORECASE | re.VERBOSE)  # SxxExx is clear
 RE_INITIAL_EPISODE = re.compile(r'^(\d+)\W', re.IGNORECASE | re.VERBOSE)  # 12- is clear
-RE_THREE_NUMBERS = re.compile(r'(\d)(?:[E]|)(\d{2,})', re.IGNORECASE | re.VERBOSE)  # xExx or Xxx
+RE_THREE_NUMBERS = re.compile(r'(\d)(?:[ExX]|)(\d{2,})', re.IGNORECASE | re.VERBOSE)  # xExx or Xxx
 
 
 def get_episode_infos(filepath):
@@ -23,7 +23,3 @@ def get_episode_infos(filepath):
                 results = (None, match.group(1))  # just the episode name
             return tuple(map(lambda x: x and x.zfill(2) or x, results))
     return (None, None)
-
-
-if __name__ == '__main__':
-    print(get_episode_infos('01 - The episode name.mp4'))
