@@ -21,12 +21,12 @@ MAIL_TEMPLATE = textwrap.dedent("""
 <!DOCTYPE html>
 <html>
 <head lang="en">
-	<meta charset="UTF-8">
+    <meta charset="UTF-8">
 </head>
 <body style='color: #4e009f'>
 <h1 id="header" style="font-family: 'Georgia', serif; text-align: center;">
-	<img src="cid:afterlogo" alt="" style="vertical-align: middle"/>
-	Afterdown report
+    <img src="cid:afterlogo" alt="" style="vertical-align: middle"/>
+    Afterdown report
 </h1>
 <table style='width: 100%; text-align:center;'>
 {rows}
@@ -97,13 +97,14 @@ class AfterMailReport(object):
             return False
         port = self.smtp_port
         recipients = self.mailto.split(",")
-        print ("Sending report mail" if not self.DEBUG else "Would send mail") + " to %s" % recipients
+        print("Sending report mail" if not self.DEBUG else "Would send mail" +
+                                                         " to %s" % recipients)
         Charset.add_charset('utf-8', Charset.QP, Charset.QP, 'utf-8')
 
         context = {"summary": self.summary}
 
         if os.path.isfile(LOGO_FILENAME):
-            with file(LOGO_FILENAME, "rb") as f:
+            with open(LOGO_FILENAME, "rb") as f:
                 msg_img = MIMEImage(f.read())
                 f.close()
                 msg_img.add_header('Content-ID', 'afterlogo')
@@ -111,11 +112,14 @@ class AfterMailReport(object):
             msg_img = None
 
         context['rows'] = "\n".join(["<tr{styleattr}>\n{cells}\n</tr>".format(
-            styleattr=" style='%s'" % MAIL_CSS.get(row['className']) if row['className'] and MAIL_CSS.get(
+            styleattr=" style='%s'" % MAIL_CSS.get(row['className']) if row[
+                                                                            'className'] and MAIL_CSS.get(
                 row['className']) else '',
-            cells="\n".join(["\t<td style='padding: 10px 10px'>%s</td>" % cell for cell in row['tokens']])
+            cells="\n".join(
+                ["\t<td style='padding: 10px 10px'>%s</td>" % cell for cell in row['tokens']])
         ) for row in self.rows])
-        # I cant use "format" to parse template cause the css is parsed, so I use a simpler replace for var in context
+        # I cant use "format" to parse template cause the css is parsed,
+        # ... so I use a simpler replace for var in context
         html = MAIL_TEMPLATE
         for key in context:
             html = html.replace("{%s}" % key, context[key])
@@ -146,4 +150,3 @@ class AfterMailReport(object):
             print("In DEBUG mode no mails are sent.")
             # file(os.path.join(os.path.dirname(__file__), "mail_output.html"), "w").write(msg.as_string())
             # print msg.as_string()
-
