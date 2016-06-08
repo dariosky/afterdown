@@ -5,6 +5,7 @@ import re
 RE_GET_SEASON_N_EPISODE = re.compile(r'S(\d+)E(\d+)', re.IGNORECASE | re.VERBOSE)  # SxxExx is clear
 RE_GET_SEASON_N_EPISODE2 = re.compile(r'S(\d+)\sEp(\d+)', re.IGNORECASE | re.VERBOSE)  # Sxx Epxx
 RE_INITIAL_EPISODE = re.compile(r'^(\d+)\W', re.IGNORECASE | re.VERBOSE)  # 12- is clear
+RE_EPISODE = re.compile(r'^(?:episode|ep|e)[\s\.]*(\d+)\W', re.IGNORECASE | re.VERBOSE)  # Ep 1
 RE_THREE_NUMBERS = re.compile(r'(\d)(?:[ExX]|)(\d{2,})', re.IGNORECASE | re.VERBOSE)  # xExx or Xxx
 
 
@@ -14,6 +15,7 @@ def get_episode_infos(filepath):
         RE_GET_SEASON_N_EPISODE,
         RE_GET_SEASON_N_EPISODE2,
         RE_INITIAL_EPISODE,
+        RE_EPISODE,
         RE_THREE_NUMBERS,
     ]:
         # test for a list of regex in order to search for a match
