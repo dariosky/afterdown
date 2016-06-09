@@ -14,9 +14,9 @@ def get_episode_infos(filepath):
     for regex in [
         RE_GET_SEASON_N_EPISODE,
         RE_GET_SEASON_N_EPISODE2,
-        RE_INITIAL_EPISODE,
         RE_EPISODE,
         RE_THREE_NUMBERS,
+        RE_INITIAL_EPISODE,
     ]:
         # test for a list of regex in order to search for a match
         match = re.search(regex, filename)

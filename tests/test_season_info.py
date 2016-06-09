@@ -8,6 +8,7 @@ def test_name_examples():
     assert get_episode_infos('person.of.interest.414.hdtv-lol') == ('04', '14')
     assert get_episode_infos('stalker.107.hdtv-lol.mp4') == ('01', '07')
     assert get_episode_infos('GameofThrones S6 Ep2 720p x265 Dolby 2.0   KTM3.mp4') == ('06', '02')
+    assert get_episode_infos('2.Broke.Girls.4x22.E.ux.x264-GiuseppeTnT.mkv') == ('04', '22')
 
 
 def test_no_season():
