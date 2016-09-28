@@ -15,7 +15,7 @@ def scan_ls_file(lines, destination_folder, only_folders=True):
             dir_name = line[:-1]
             current_folder = os.path.abspath(os.path.join(destination_folder, dir_name))
             if not os.path.isdir(current_folder):
-                print("creating %s" % current_folder)
+                # print("creating %s" % current_folder)
                 os.makedirs(current_folder)
         else:
             if only_folders:
@@ -24,7 +24,7 @@ def scan_ls_file(lines, destination_folder, only_folders=True):
             if os.path.isdir(maybe_file_path):  # this file is not a file, is a folder
                 continue
             if not os.path.isfile(maybe_file_path):
-                print("\t%s" % maybe_file_path)
+                # print("\t%s" % maybe_file_path)
                 open(maybe_file_path, 'a').close()
 
 

@@ -27,8 +27,8 @@ except ImportError:
 
 from core.rules import Rule, ApplyResult
 
-print("AfterDown %s" % VERSION)
-print("Copyright (C) 2015-%s  Dario Varotto\n" % datetime.date.today().year)
+print(("AfterDown %s" % VERSION))
+print(("Copyright (C) 2015-%s  Dario Varotto\n" % datetime.date.today().year))
 
 DROPBOX_KEYFILE = ".afterdown_dropbox_keys.json"
 DEFAULT_KNOWNFILE = ".afterknown"
@@ -287,8 +287,8 @@ class AfterDown(object):
                 del config["mail"]
 
         if "dropbox" in config:
-            if not isinstance(config["dropbox"], dict) or "start_torrents_on" not in config[
-                "dropbox"]:
+            if not isinstance(config["dropbox"], dict) \
+                    or "start_torrents_on" not in config["dropbox"]:
                 # if we don't need Dropbox, we can drop it's config
                 del config["dropbox"]
 
@@ -348,7 +348,7 @@ class AfterDown(object):
             access_token, user_id = flow.finish(code)
             dropbox_config["access_token"] = access_token
             self.logger.info("Storing access_token to Dropbox account")
-            with file(DROPBOX_KEYFILE, "w") as f:
+            with open(DROPBOX_KEYFILE, "w") as f:
                 json.dump(dropbox_config, f)
         else:
             # we can reuse the access_token

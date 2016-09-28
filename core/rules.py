@@ -39,7 +39,7 @@ class Rule(object):
     # define the possible fields
     fields = ['extensions', 'size', 'priority', 'seasonSplit', 'action',
               'actionName', 'className', 'to', 'matches', 'name',
-              'overwrite', 'folderSplit']
+              'overwrite', 'folderSplit', "downloadSubtitles"]
 
     def __getitem__(self, key):
         return getattr(self, key)
@@ -67,6 +67,7 @@ class Rule(object):
         self.name = None
         self.overwrite = "skip"
         self.updateKodi = True
+        self.downloadSubtitles = None
 
         self.config = config
 
@@ -225,6 +226,7 @@ class Rule(object):
             actionName=self.actionName,
             candidate=candidate,
             filepath=candidate['filepath'],
+            sub_downloaded=self.downloadSubtitles,
         )
         if self.action == self.ACTION_DELETE:
             if commit:
@@ -285,6 +287,10 @@ class Rule(object):
                 full_target_path = os.path.join(full_target, filename)
             result['target_fullpath'] = full_target_path
             result['target_filepath'] = full_target_path[len(self.config['target']) + 1:]
+
+            if self.downloadSubtitles:
+                print("DOWNLOAD SUB")
+                result["sub_downloaded"] = True
         return result
 
 
