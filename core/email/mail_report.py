@@ -4,7 +4,7 @@ from __future__ import print_function
 import os
 import smtplib
 import textwrap
-from email.charset import Charset
+from email.charset import QP, add_charset
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -99,8 +99,8 @@ class AfterMailReport(object):
         port = self.smtp_port
         recipients = self.mailto.split(",")
         print("Sending report mail" if not self.DEBUG else "Would send mail" +
-                                                         " to %s" % recipients)
-        Charset.add_charset('utf-8', Charset.QP, Charset.QP, 'utf-8')
+                                                           " to %s" % recipients)
+        add_charset('utf-8', QP, QP, 'utf-8')
 
         context = {"summary": self.summary}
 
