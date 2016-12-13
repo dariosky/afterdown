@@ -1,12 +1,13 @@
 # coding=utf-8
 from __future__ import print_function
-from email import Charset
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.MIMEImage import MIMEImage
+
 import os
 import smtplib
 import textwrap
+from email.charset import Charset
+from email.mime.image import MIMEImage
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 __author__ = 'Dario Varotto'
 # we are sending email, so inline all css

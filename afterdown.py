@@ -307,8 +307,11 @@ class AfterDown(object):
             if folder and os.path.isdir(folder_path) \
                     and folder_path.startswith(root) and folder_path != root \
                     and not os.listdir(folder_path):
-                self.logger.info("Deleting empty folder: %s" % folder_path)
-                os.rmdir(folder_path)
+                try:
+                    os.rmdir(folder_path)
+                    self.logger.info("Deleted empty folder: %s" % folder_path)
+                except OSError:
+                    self.logger.error("Cannot delete folder %s" % folder_path)
                 if folder_path != root:
                     parent_folder = os.path.dirname(folder_path)
                     self.touched_folders.add(parent_folder)
