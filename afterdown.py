@@ -1,24 +1,22 @@
 #!/usr/bin/python
 # coding: utf-8
 from __future__ import print_function
+
+import datetime
 import json
 import logging
 import logging.handlers
 import os
-from subprocess import call
-import posixpath
 import sys
-import datetime
-from six.moves import input
-import tempfile
-from core.countersummary import CounterSummary
 
+from core.countersummary import CounterSummary
+from core.dropboxsync import dropbox_sync
 from core.email.log import BufferedSmtpHandler
 from core.email.mail_report import AfterMailReport
 from core.knownfiles import KnownFiles
 from core.utils import recursive_update
 
-VERSION = "0.9.1"
+VERSION = "0.9.2"
 
 try:
     import requests
@@ -321,90 +319,21 @@ class AfterDown(object):
             Try to sync with a dropbox folder for various reason, actually to get a list of torrents
             to pass to Transmission
         """
-        try:
-            import dropbox
-        except ImportError:
-            dropbox = None
-            self.logger.error("To use Dropbox syncronization you need the Dropbox package.")
-            self.logger.error("Use: pip install dropbox.")
-            return
-        if not os.path.isfile("%s" % DROPBOX_KEYFILE):
-            self.logger.error(
-                "To sync with Dropbox you need a %s file with app_key and app_secret" % DROPBOX_KEYFILE)
-            return
-        dropbox_config = json.load(open(DROPBOX_KEYFILE, "r"))
-        if "app_key" not in dropbox_config or "app_secret" not in dropbox_config:
-            self.logger.error(
-                "The dropbox config should be a json file with with app_key and app_secret")
-            return
-        # everything is ok, we can start the Dropbox OAuth2
-        if "access_token" not in dropbox_config:
-            # we have the app, but no link to an account, ask to authorize
-            app_key, app_secret = dropbox_config["app_key"], dropbox_config["app_secret"]
-            print("Everything is set, going to Dropbox")
-            flow = dropbox.client.DropboxOAuth2FlowNoRedirect(app_key, app_secret)
-            authorize_url = flow.start()
-            print('1. Go to: ' + authorize_url)
-            print('2. Click "Allow" (you might have to log in first)')
-            print('3. Copy the authorization code.')
-            code = input("Enter the authorization code here: ").strip()
-            access_token, user_id = flow.finish(code)
-            dropbox_config["access_token"] = access_token
-            self.logger.info("Storing access_token to Dropbox account")
-            with open(DROPBOX_KEYFILE, "w") as f:
-                json.dump(dropbox_config, f)
-        else:
-            # we can reuse the access_token
-            access_token = dropbox_config["access_token"]
-        try:
-            if self.config['dropbox'].get("start_torrents_on"):
-                torrents_folder = self.config['dropbox'].get("start_torrents_on")
-                client = dropbox.client.DropboxClient(access_token)
-                print("Sync with Dropbox account %s" % client.account_info()['email'])
-                folder_meta = client.metadata(torrents_folder)
-                for content in filter(
-                        lambda meta: meta.get('mime_type') == u'application/x-bittorrent',
-                        folder_meta['contents']):
-                    self.logger.info(
-                        "%s %s %s" % (content['path'], "by", content["modifier"]["display_name"]))
-                    self.process_dropbox_file(client, content)
-        except dropbox.rest.ErrorResponse as e:
-            self.logger.error(e)
-
-    def process_dropbox_file(self, dropbox_client, filemeta):
-        import dropbox
-
-        if self.config['dropbox'].get("add_torrent_to_transmission"):
-            # download the file to a temporary folder, then add it to transmission
-            source_path = filemeta['path']
-            with tempfile.NamedTemporaryFile(prefix="afterdown", suffix="temptorrent",
-                                             delete=False) as temp:
-                # print "Get from torrent to tempfile %s" % temp.name
-                with dropbox_client.get_file(source_path) as f:
-                    temp.write(f.read())
-            try:
-                call(["transmission-remote", "-a", temp.name, "--no-start-paused"])
-                if self.report_mail:
+        source_files = dropbox_sync(
+            keyfile=DROPBOX_KEYFILE,
+            torrents_folder=self.config['dropbox'].get("start_torrents_on"),
+            add_to_transmission=self.config['dropbox'].get("add_torrent_to_transmission"),
+            move_downloaded_on=self.config['dropbox'].get('move_them_on'),
+        )
+        if self.report_mail:
+            for source_path in source_files:
+                if source_path:  # exclude falsey values
                     download_result = ApplyResult(action=Rule.ACTION_DOWNLOAD, filepath=source_path)
                     self.report_mail.add_row(download_result)
-                dropbox_move_target = self.config['dropbox'].get('move_them_on')
-                if dropbox_move_target:
-                    filename = os.path.basename(source_path)
-                    target_path = posixpath.join(dropbox_move_target, filename)
-                    try:
-                        dropbox_client.file_move(source_path, target_path)
-                    except dropbox.rest.ErrorResponse as e:
-                        self.logger.error(
-                            "Error moving dropbox file from {source} to {target}.\n{error_message}".format(
-                                source=source_path, target=target_path, error_message=e.message
-                            ))
-            except:
-                self.logger.error(
-                    u"Error running transmission-remote on file {path}".format(path=source_path))
-            os.unlink(temp.name)
 
 
-# DONE: keep a list of folder from wich we removed or moved files, and at the end delete them if they are empty
+# DONE: keep a list of folder from wich we removed or moved files,
+# and at the end delete them if they are empty
 # DONE: Send mail of the activities
 # DONE: Keep the movie in a separate folder based on the filename without extension
 
