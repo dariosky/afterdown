@@ -3,7 +3,7 @@ import logging
 import os
 import posixpath
 import tempfile
-from subprocess import call
+from subprocess import call, CalledProcessError, check_output
 
 logger = logging.getLogger("afterdown.dropbox")
 
@@ -101,10 +101,24 @@ def process_dropbox_file(dropbox_client, filemeta,
                         logger.error("Magnet line %s does not seem a magnet url" % line)
                     if line:
                         # add every single non empty line (that should be a magnet url)
-                        call(["transmission-remote", "-a", line, "--no-start-paused"])
+                        try:
+                            output = check_output(
+                                ["transmission-remote", "-a", line, "--no-start-paused"]
+                            )
+                        except CalledProcessError as e:
+                            logger.error(
+                                "Error parsing magnet: %s" % e
+                            )
             else:
                 # process the torrent
-                call(["transmission-remote", "-a", temp.name, "--no-start-paused"])
+                try:
+                    output = check_output(
+                        ["transmission-remote", "-a", temp.name, "--no-start-paused"]
+                    )
+                except CalledProcessError as e:
+                    logger.error(
+                        "Error parsing torrent: %s" % e
+                    )
 
             dropbox_move_target = move_downloaded_on
             if dropbox_move_target:
