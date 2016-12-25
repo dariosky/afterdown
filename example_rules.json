@@ -1,57 +1,56 @@
 {
-  "source": "torrents/complete",
-  "target": "external/disk",
-
-  "kodi": {
-    "host": "localhost",
-    "requestUpdate": true
-  },
-  "mail": {
-    "to": "your_address@email.com",
-    "subject": "Afterdown status mail",
-    "smtp": "localhost"
-  },
+  "source": "/home/you/downloaded",
+  "target": "/your/ordered/archive",
   "rules": [
     {
-      "match": "stalker",
+      "match": "homeland",
       "type": "Serie",
-      "to": "Serie/Stalker"
+      "to": "SerieTV/Homeland"
     },
     {
-      "match": "Big Bang Theory",
+      "foundType": "serie",
       "type": "Serie",
-      "to": "Serie/Big Bang Theory"
+      "addTitle": true,
+      "priority": 50
     },
     {
-      "match": "House of cards",
-      "type": "Serie",
-      "to": "Serie/House of Cards"
-    },
-    {
-      "match": "Person of Interest",
-      "type": "Serie",
-      "to": "Serie/Person of Interest"
+      "foundType": "movie",
+      "type": "Movie",
+      "priority": 50
     },
     {
       "match": "sample",
-      "type": "fanta_delete",
+      "type": "soft_delete",
       "priority": 60
     },
     {
-      "size": ">500MB",
-      "type": "Video",
-      "to": "Films",
-      "folderSplit": true
+      "extensions": [
+        "nfo",
+        "txt"
+      ],
+      "type": "soft_delete",
+      "priority": 0
+    },
+    {
+      "match": "thumbs.db",
+      "type": "soft_delete",
+      "priority": 0
+    },
+    {
+      "size": ">650MB",
+      "type": "Movie",
+      "priority": 30
     }
   ],
   "types": {
-    "Video": {
+    "video": {
       "extensions": [
         "avi",
         "mp4",
         "mkv",
         "mov"
-      ]
+      ],
+      "downloadSubtitles": true
     },
     "music": {
       "extensions": [
@@ -66,19 +65,47 @@
         "sub"
       ]
     },
+    "movie": {
+      "to": "Film",
+      "actionName": "FILM",
+      "folderSplit": true,
+      "types": [
+        "video"
+      ]
+    },
     "serie": {
+      "actionName": "SERIE",
       "seasonSplit": true,
+      "to": "Serie",
       "types": [
         "video",
         "subtitles"
       ]
     },
-    "fanta_delete": {
+    "soft_delete": {
       "action": "move",
+      "actionName": "Soft DELETE",
+      "className": "deleted",
       "to": "_trash",
       "priority": 0,
       "overwrite": "rename",
       "updateKodi": false
     }
+  },
+  "kodi": {
+    "host": "localhost:80",
+    "requestUpdate": true
+  },
+  "mail": {
+    "from": "notification@your.mediacenter.com",
+    "password": "yourSecretMailPassword",
+    "to": "your@email.adderess.com",
+    "subject": "Afterdown report",
+    "smtp": "smtp.your.mailserver.org:587"
+  },
+  "dropbox": {
+    "start_torrents_on": "/torrents",
+    "add_torrent_to_transmission": true,
+    "move_them_on": "/torrents/archive"
   }
 }
