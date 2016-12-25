@@ -3,7 +3,7 @@ import logging
 import os
 import posixpath
 import tempfile
-from subprocess import call, CalledProcessError, check_output
+from subprocess import CalledProcessError, check_output
 
 logger = logging.getLogger("afterdown.dropbox")
 

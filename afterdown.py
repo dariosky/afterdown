@@ -14,7 +14,7 @@ from core.dropboxsync import dropbox_sync
 from core.email.log import BufferedSmtpHandler
 from core.email.mail_report import AfterMailReport
 from core.knownfiles import KnownFiles
-from core.utils import recursive_update
+from core.utils import recursive_update, dependency_resolver
 
 VERSION = "0.9.2"
 
@@ -228,14 +228,33 @@ class AfterDown(object):
         # delete all touched empty folders (and parents) when empty
         self.deleteEmptyFolders = config.get('deleteEmptyFolders', True) and True or False
         if "types" in config:
-            types_definition = config['types']
+            # Processing the parent rules
+            types_definition = []
+            for name, rule_def in config['types'].items():
+                rule_def['name'] = name  # add the key as the typerule name
+                types_definition.append(rule_def)
             config['types'] = {}
-            # change config.types to a list of rules
-            for denormalized_name, rule_def in types_definition.items():
-                rule = Rule(rule_def, name=denormalized_name, config=config)
+
+            def add_type_to_config(rule_def):
+                """
+                :type rule_def: dict
+                """
+                rule_name = rule_def.get('name')  # remove the name we added for dependency solver
+                rule = Rule(rule_def, name=rule_name, config=config)
                 name = rule.name  # the rule does the normalization
-                assert name not in config['types'], "Multiple file type definition for %s" % name
+                assert name not in config['types'], "Multiple type definition for %s" % name
                 config['types'][name] = rule
+
+            def get_dependencies(rule_def):
+                dependencies = []
+                for r in types_definition:
+                    if r['name'] in rule_def.get('types', []):
+                        dependencies.append(r)
+                return dependencies
+
+            # change config.types to a list of rules
+
+            dependency_resolver(types_definition, get_dependencies, add_type_to_config)
 
         config["rules"] = [Rule(rule_def, config=config) for rule_def in config["rules"]]
         # defaults for kodi configuration

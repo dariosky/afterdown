@@ -12,3 +12,35 @@ def recursive_update(source_dict, updates):
         else:
             source_dict[k] = updates[k]
     return source_dict
+
+
+class CircularDependencyException(Exception):
+    pass
+
+
+def dependency_resolver(objects, get_dependencies_func, process_func):
+    """ Call the process_func on all objects, being sure that dependencies
+        are preserved. Check if an object depends on another, via get_dependencies_func
+    """
+    processed = []
+    to_be_processed = [x for x in objects]  # create a list to the original objects
+    dead_for = 0
+
+    while to_be_processed:
+        n = to_be_processed.pop()
+        doable = True
+        for d in get_dependencies_func(n):
+            if d not in processed:
+                doable = False
+
+        if doable:
+            process_func(n)
+            processed.append(n)
+            dead_for = 0
+        else:
+            to_be_processed.insert(0, n)  # add the element back in the list
+            dead_for += 1  # we are waiting for dependencies to be solved
+
+        if dead_for > len(to_be_processed):
+            raise CircularDependencyException(
+                "Circular reference found, cannot process %s" % to_be_processed)
