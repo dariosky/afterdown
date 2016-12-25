@@ -1,5 +1,7 @@
 import collections
 
+from guessit import guessit
+
 
 def recursive_update(source_dict, updates):
     """ Recursive update dictionary when the update contain dictionaries
@@ -12,6 +14,25 @@ def recursive_update(source_dict, updates):
         else:
             source_dict[k] = updates[k]
     return source_dict
+
+
+def guessit_video_type(filename):
+    """ This will return movie or serie given a filename
+        All the hard work is done by the guessit library,
+        we wrap it just to smooth some corner case
+     """
+    g = guessit(filename)
+    if g.get('type') == 'episode':
+        return 'serie'
+    if 'part' in g:
+        return "serie"
+    return g.get('type') or "unknown"
+
+
+def guessit_video_title(filename):
+    """ Get the movie/serie title, from guessit, case normalized """
+    g = guessit(filename)
+    return g.get('title', '').title()
 
 
 class CircularDependencyException(Exception):

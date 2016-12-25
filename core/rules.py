@@ -1,10 +1,17 @@
-import cgi
-from collections import defaultdict
+import logging
 import os
 import random
 import shutil
+from collections import defaultdict
+
+from core.utils import guessit_video_type, guessit_video_title
+
+try:
+    from html import escape
+except ImportError:
+    from cgi import escape
+
 from core.constants import OPERATORS_MAP, AttrDict
-import logging
 from core.matching import try_match_strings
 from core.season_info import get_episode_infos
 
@@ -36,10 +43,17 @@ class Rule(object):
     ACTION_UNSURE = "UNSURE"
     ACTION_KODI_REFRESH = "Kodi Update"
 
-    # define the possible fields
+    # define the possible fields - those are also inherited from types
     fields = ['extensions', 'size', 'priority', 'seasonSplit', 'action',
               'actionName', 'className', 'to', 'matches', 'name',
-              'overwrite', 'folderSplit', "downloadSubtitles"]
+              'overwrite', 'folderSplit', "downloadSubtitles",
+              "foundType", "addTitle", 'updateKodi',
+              ]
+
+    # those fields are allowed, but are not inherited
+    ignored_fields = [
+        'types',
+    ]
 
     def __getitem__(self, key):
         return getattr(self, key)
@@ -68,6 +82,8 @@ class Rule(object):
         self.overwrite = "skip"
         self.updateKodi = True
         self.downloadSubtitles = None
+        self.foundType = None  # can be "movie" or "serie"
+        self.addTitle = False
 
         self.config = config
 
@@ -91,6 +107,9 @@ class Rule(object):
             self.types.append(parent_rule_name)
 
         # append from the definitions
+        for field in rule_def:
+            if field not in self.fields and field not in self.ignored_fields:
+                raise Exception("Unknown field specified: %s" % field)
         for key in self.fields:
             if key in rule_def:
                 value = rule_def[key]
@@ -215,6 +234,13 @@ class Rule(object):
                 #     threshold=threshold,
                 # ))
                 return False
+
+        if self.foundType:
+            filename = os.path.basename(candidate['filepath'])
+            guessed_type = guessit_video_type(filename)
+            if self.foundType != guessed_type:
+                return False
+
         return confidence
 
     def apply(self, candidate, commit=True):
@@ -239,8 +265,14 @@ class Rule(object):
         elif self.action == self.ACTION_SKIP:
             pass
         elif self.action == self.ACTION_MOVE:
-            assert self.to, "In move action you have to specify the destination with the 'to' parameter."
+            assert self.to, "When MOVE you have to specify the destination with the 'to' parameter."
             to = self.to
+            if self.addTitle:
+                # we add the detected serie title from to the destination
+                filename = os.path.basename(candidate['filepath'])
+                title = guessit_video_title(filename)
+                if title:
+                    to = os.path.join(to, title)
             if self.seasonSplit:
                 season, episode = get_episode_infos(candidate['filepath'])
                 if season:
@@ -333,10 +365,10 @@ class ApplyResult(AttrDict):
         dirname, filename = os.path.dirname(self.filepath), os.path.basename(self.filepath)
         if dirname:
             dirname += os.path.sep
-        tokens.append("{dirname}<b>{filename}</b>".format(dirname=cgi.escape(dirname),
-                                                          filename=cgi.escape(filename)))
+        tokens.append("{dirname}<b>{filename}</b>".format(dirname=escape(dirname),
+                                                          filename=escape(filename)))
         if self.action == Rule.ACTION_MOVE:
-            tokens.append(cgi.escape(os.path.dirname(self.target_filepath)))
+            tokens.append(escape(os.path.dirname(self.target_filepath)))
         return tokens
 
     @property

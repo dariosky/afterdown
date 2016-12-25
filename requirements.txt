@@ -9,3 +9,8 @@ dropbox
 
 # python 2to3
 six
+
+# guess the file type
+guessit
+
+future

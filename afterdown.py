@@ -16,7 +16,7 @@ from core.email.mail_report import AfterMailReport
 from core.knownfiles import KnownFiles
 from core.utils import recursive_update, dependency_resolver
 
-VERSION = "0.9.2"
+VERSION = "0.9.3"
 
 try:
     import requests
