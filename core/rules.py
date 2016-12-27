@@ -18,6 +18,45 @@ from core.season_info import get_episode_infos
 logger = logging.getLogger("afterdown.rules")
 
 
+def normalize_field(key, value):
+    if key == "name":
+        return value.lower() if value else None
+    elif key == "extensions":
+        return value.lower() if value else None
+    elif key == "size":
+        if value is None:
+            return None
+        if value.isdigit():
+            return "=", int(value)  # only the number means equal to N bytes
+        operator = "="
+        possibile_starting_operators = ["=", "<=", ">=", "<", ">"]
+        for possible_operator in possibile_starting_operators:
+            if value.startswith(possible_operator):
+                operator = possible_operator
+                value = value[len(possible_operator):]
+        value = value.lower()
+        if value.endswith("b"):
+            value = value[
+                    :-1]  # trim the eventual ending B, the size will end in MB, KB or M, K
+        multiplier = 1
+        if value.endswith("m"):
+            multiplier = 1024 * 1024
+            value = value[:-1]
+        elif value.endswith("k"):
+            multiplier = 1024
+            value = value[:-1]
+        value = int(value) * multiplier
+        return operator, value
+    elif key == "matches":
+        return value.lower()
+    elif key == "overwrite":
+        value = value.lower()
+        assert value in ("rename", "skip", "overwrite")
+        return value
+    else:
+        return value
+
+
 class Rule(object):
     """ This object define a sort rule
         It will define a matching rule, or an a type (that is a sort of named rule).
@@ -99,7 +138,7 @@ class Rule(object):
 
         # get from parent rules (types)
         for parent_rule_name in rule_def.get('types', []):
-            parent_rule_name = self.normalize_field('name', parent_rule_name)
+            parent_rule_name = normalize_field('name', parent_rule_name)
             if parent_rule_name not in previous_rules:
                 raise Exception("Unknown rule type %s" % parent_rule_name)
             parent_rule = previous_rules[parent_rule_name]
@@ -154,51 +193,13 @@ class Rule(object):
         if isinstance(current_value, list):
             for item in value:
                 if not normalized:
-                    item = self.normalize_field(key, item)
+                    item = normalize_field(key, item)
                 if item not in current_value:
                     current_value.append(item)
         else:
             if not normalized:
-                value = self.normalize_field(key, value)
+                value = normalize_field(key, value)
             setattr(self, key, value)
-
-    def normalize_field(self, key, value):
-        if key == "name":
-            return value.lower() if value else None
-        elif key == "extensions":
-            return value.lower() if value else None
-        elif key == "size":
-            if value is None:
-                return None
-            if value.isdigit():
-                return ("=", int(value))  # only the number means equal to N bytes
-            operator = "="
-            possibile_starting_operators = ["=", "<=", ">=", "<", ">"]
-            for possible_operator in possibile_starting_operators:
-                if value.startswith(possible_operator):
-                    operator = possible_operator
-                    value = value[len(possible_operator):]
-            value = value.lower()
-            if value.endswith("b"):
-                value = value[
-                        :-1]  # trim the eventual ending B, the size will end in MB, KB or M, K
-            multiplier = 1
-            if value.endswith("m"):
-                multiplier = 1024 * 1024
-                value = value[:-1]
-            elif value.endswith("k"):
-                multiplier = 1024
-                value = value[:-1]
-            value = int(value) * multiplier
-            return operator, value
-        elif key == "matches":
-            return value.lower()
-        elif key == "overwrite":
-            value = value.lower()
-            assert value in ("rename", "skip", "overwrite")
-            return value
-        else:
-            return value
 
     def match(self, candidate):
         # candidate is a dictionary with property of a candidate file:

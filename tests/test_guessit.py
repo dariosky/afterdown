@@ -1,6 +1,4 @@
-from guessit import guessit
-
-from core.utils import guessit_video_type
+from core.utils import guessit_video_type, guessit_video_title
 
 SERIE_EXAMPLES = (
     'Treme.1x03.Right.Place,.Wrong.Time.HDTV.XviD-NoTV.avi',
