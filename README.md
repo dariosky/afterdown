@@ -1,6 +1,8 @@
 Afterdown
 =========
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/67b2d500b61a476b9bbe4a01726be8f2)](https://www.codacy.com/app/dariosky/afterdown?utm_source=github.com&utm_medium=referral&utm_content=dariosky/afterdown&utm_campaign=badger)
+
 Afterdown takes care of moving files from a source folder to their proper position in a target folder using a set of
 user defined rules.
 
