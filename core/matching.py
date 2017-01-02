@@ -77,10 +77,3 @@ def try_match_strings(candidate, matches, max_priority):
         else:
             result = max(result, string_confidence)
     return result
-
-
-if __name__ == '__main__':
-    pat = '\d+\ cats[\w ]+\.avi'
-    repat = js_to_py_re('/' + pat + '/')
-    s = "44 cats in row by 3 with the remainder of 2.avi"
-    print(repat(s))

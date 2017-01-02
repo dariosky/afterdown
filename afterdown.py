@@ -17,6 +17,7 @@ from core.knownfiles import KnownFiles
 from core.utils import recursive_update, dependency_resolver
 
 VERSION = "0.9.3"
+FS_ENC = 'UTF-8'
 
 try:
     import requests
@@ -85,9 +86,13 @@ class AfterDown(object):
         kodi_update_needed = False
 
         logger = self.logger
-        for foldername, dirnames, filenames in os.walk(root, followlinks=True):
+        # on walk and on file operations use encoded binary strings
+        for foldername, dirnames, filenames in os.walk(root.encode('utf-8'), followlinks=True):
+            foldername = foldername.decode(FS_ENC)
             logger.debug(foldername[len(root) + 1:] or "/")
             for filename in filenames:
+                filename = filename.decode(FS_ENC)
+
                 counters['_tot'] += 1
                 fullpath = os.path.join(foldername, filename)
                 filepath = os.path.join(foldername[len(root) + 1:], filename)

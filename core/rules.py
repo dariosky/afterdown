@@ -223,7 +223,9 @@ class Rule(object):
                 return False
         if self.size is not None:
             if "size" not in candidate:
-                candidate['size'] = os.path.getsize(candidate['fullpath'])
+                candidate['size'] = os.path.getsize(
+                    candidate['fullpath'].encode('utf-8')
+                )
             size = candidate["size"]
             operator, threshold = self.size  # size is a tuple with operator (=, <, >) and size in bytes
             operator_function = OPERATORS_MAP[operator]
@@ -366,8 +368,9 @@ class ApplyResult(AttrDict):
         dirname, filename = os.path.dirname(self.filepath), os.path.basename(self.filepath)
         if dirname:
             dirname += os.path.sep
-        tokens.append("{dirname}<b>{filename}</b>".format(dirname=escape(dirname),
-                                                          filename=escape(filename)))
+        tokens.append("%s<b>%s</b>" % (
+            escape(dirname), escape(filename),
+        ))
         if self.action == Rule.ACTION_MOVE:
             tokens.append(escape(os.path.dirname(self.target_filepath)))
         return tokens
