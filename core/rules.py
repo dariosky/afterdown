@@ -1,8 +1,12 @@
+from __future__ import print_function, unicode_literals
+
 import logging
 import os
 import random
 import shutil
 from collections import defaultdict
+
+from subliminal.core import save_subtitles
 
 from core.utils import guessit_video_type, guessit_video_title
 
@@ -324,8 +328,22 @@ class Rule(object):
             result['target_filepath'] = full_target_path[len(self.config['target']) + 1:]
 
             if self.downloadSubtitles:
-                print("DOWNLOAD SUB")
-                result["sub_downloaded"] = True
+                filename = os.path.basename(result['target_fullpath'])
+                from subliminal import download_best_subtitles, Video
+                from babelfish import Language
+                print("Scanning subtitles for {filename} in {languages}".format(
+                    filename=filename, languages=self.downloadSubtitles
+                ))
+                video = Video.fromname(result['target_fullpath'])
+                languages = {Language(lang_str) for lang_str in self.downloadSubtitles.split(',')}
+                # my_region = region.configure('dogpile.cache.memory')
+                subtitles = download_best_subtitles({video}, languages)
+                if subtitles and commit:
+                    print("Saving subtitles")
+                    save_subtitles(video, subtitles[video])
+                    result["sub_downloaded"] = True
+                else:
+                    print("No subtitles found")
         return result
 
 

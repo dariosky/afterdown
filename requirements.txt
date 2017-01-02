@@ -9,8 +9,10 @@ dropbox
 
 # python 2to3
 six
+future
 
 # guess the file type
 guessit
 
-future
+# download subtibles
+subliminal
