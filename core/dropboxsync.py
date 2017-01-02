@@ -92,6 +92,7 @@ def process_dropbox_file(dropbox_client, filemeta,
                 content = f.read()
                 temp.write(content)
         try:
+            got_error = False
             ext = os.path.splitext(source_path)[-1]
             if ext == ".magnet":
                 logger.debug("Processing magnet file %s" % source_path)
@@ -109,6 +110,7 @@ def process_dropbox_file(dropbox_client, filemeta,
                             logger.error(
                                 "Error parsing magnet: %s" % e
                             )
+                            got_error = True
             else:
                 # process the torrent
                 try:
@@ -119,9 +121,10 @@ def process_dropbox_file(dropbox_client, filemeta,
                     logger.error(
                         "Error parsing torrent: %s" % e
                     )
+                    got_error = True
 
             dropbox_move_target = move_downloaded_on
-            if dropbox_move_target:
+            if dropbox_move_target and not got_error:
                 filename = os.path.basename(source_path)
                 target_path = posixpath.join(dropbox_move_target, filename)
                 try:
