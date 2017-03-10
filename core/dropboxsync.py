@@ -103,7 +103,7 @@ def process_dropbox_file(dropbox_client, filemeta,
                     if line:
                         # add every single non empty line (that should be a magnet url)
                         try:
-                            output = check_output(
+                            check_output(
                                 ["transmission-remote", "-a", line, "--no-start-paused"]
                             )
                         except CalledProcessError as e:
@@ -119,7 +119,9 @@ def process_dropbox_file(dropbox_client, filemeta,
                     )
                 except CalledProcessError as e:
                     logger.error(
-                        "Error parsing torrent: %s" % e
+                        "Error parsing torrent: {error}".format(
+                            error=e
+                        )
                     )
                     got_error = True
 
@@ -132,7 +134,7 @@ def process_dropbox_file(dropbox_client, filemeta,
                 except dropbox.rest.ErrorResponse as e:
                     logger.error(
                         "Error moving dropbox file from {source} to {target}.\n{error_message}".format(
-                            source=source_path, target=target_path, error_message=e.message
+                            source=source_path, target=target_path, error_message=e
                         ))
         except:
             logger.error(
