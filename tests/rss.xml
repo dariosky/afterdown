@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:torrent="https://zooqle.com/xmlns/0.1/"
+	 xmlns:atom="http://www.w3.org/2005/Atom">
+	<channel>
+		<title>User RSS feed | Zooqle</title>
+		<link>https://zooqle.com/</link>
+		<atom:link rel="search" type="application/opensearchdescription+xml"
+				   href="https://zooqle.com/misc/opensearch.xml"/>
+		<item>
+			<title>The Big Bang Theory – 10x22: The Cognition Regeneration [Std]</title>
+
+			<torrent:contentLength>150345272</torrent:contentLength>
+			<torrent:infoHash>039xxx</torrent:infoHash>
+			<torrent:magnetURI>
+				<![CDATA[magnet:?xt=urn:btih:039DBAE3Axxx]]></torrent:magnetURI>
+			<torrent:fileName>The_Big_Bang_Theory_S10E22_WEB_DL_x264_FUM_ettv.torrent
+			</torrent:fileName>
+		</item>
+	</channel>
+</rss>

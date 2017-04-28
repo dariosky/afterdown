@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import json
 import logging
 import os
@@ -14,9 +16,9 @@ def dropbox_sync(keyfile,
                  move_downloaded_on,
                  ):
     try:
+        # noinspection PyUnresolvedReferences
         import dropbox
     except ImportError:
-        dropbox = None
         logger.error("To use Dropbox syncronization you need the Dropbox package.")
         logger.error("Use: pip install dropbox.")
         return
@@ -98,23 +100,13 @@ def process_dropbox_file(dropbox_client, filemeta,
                 logger.debug("Processing magnet file %s" % source_path)
                 for line in content.split():
                     line = line.strip()
-                    if not line.startswith('magnet:'):
-                        logger.error("Magnet line %s does not seem a magnet url" % line)
-                    if line:
-                        # add every single non empty line (that should be a magnet url)
-                        try:
-                            check_output(
-                                ["transmission-remote", "-a", line, "--no-start-paused"]
-                            )
-                        except CalledProcessError as e:
-                            logger.error(
-                                "Error parsing magnet: %s" % e
-                            )
+                    if line:  # skip empty lines
+                        if add_magnet_url(line) is False:
                             got_error = True
             else:
                 # process the torrent
                 try:
-                    output = check_output(
+                    check_output(
                         ["transmission-remote", "-a", temp.name, "--no-start-paused"]
                     )
                 except CalledProcessError as e:
@@ -138,8 +130,26 @@ def process_dropbox_file(dropbox_client, filemeta,
                         ))
         except:
             logger.error(
-                u"Error running transmission-remote on file {path}".format(path=source_path))
+                "Error running transmission-remote on file {path}".format(path=source_path)
+            )
             source_path = None  # when erroring return None
         finally:
             os.unlink(temp.name)
         return source_path
+
+
+def add_magnet_url(url):
+    if not url.startswith('magnet:'):
+        logger.error("Magnet line %s does not seem a magnet url" % url)
+    else:
+        # add every single non empty line (that should be a magnet url)
+        try:
+            check_output(
+                ["transmission-remote", "-a", url, "--no-start-paused"]
+            )
+            return True  # Success
+        except CalledProcessError as e:
+            logger.error(
+                "Error parsing magnet: %s" % e
+            )
+    return False

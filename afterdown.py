@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # coding: utf-8
-from __future__ import print_function
+from __future__ import print_function, unicode_literals
 
 import datetime
 import json
@@ -10,27 +10,25 @@ import os
 import sys
 
 from core.countersummary import CounterSummary
-from core.dropboxsync import dropbox_sync
+from core.dropboxsync import dropbox_sync, add_magnet_url
 from core.email.log import BufferedSmtpHandler
 from core.email.mail_report import AfterMailReport
 from core.knownfiles import KnownFiles
+from core.rss import rss_zoogle_sync
+from core.rules import Rule, ApplyResult
 from core.utils import recursive_update, dependency_resolver
 
-VERSION = "0.9.3"
+VERSION = "0.9.5"
 FS_ENC = 'UTF-8'
+PROJECT_PATH = os.path.dirname(__file__)
 
 try:
     import requests
 except ImportError:
     requests = None
 
-from core.rules import Rule, ApplyResult
-
 print(("AfterDown %s" % VERSION))
 print(("Copyright (C) 2015-%s  Dario Varotto\n" % datetime.date.today().year))
-
-DROPBOX_KEYFILE = ".afterdown_dropbox_keys.json"
-DEFAULT_KNOWNFILE = ".afterknown"
 
 
 class AfterDown(object):
@@ -69,8 +67,8 @@ class AfterDown(object):
         self.config_file = config_file
         self.config = None
         self.deleteEmptyFolders = True
-        self.touched_folders = set()  # the folders on source that have been touched (by a MOVE or DELETE)
-        self.error_mail_handler = None  # the eventual BufferedSmtpHandler, will be flushed when need to send mail
+        self.touched_folders = set()  # source folders touched (by a MOVE or DELETE)
+        self.error_mail_handler = None  # BufferedSmtpHandler, flushed when need to send mail
         self.report_mail = None  # the AfterMailReport that will send the pretty report
         self.knownfiles = None
 
@@ -131,7 +129,7 @@ class AfterDown(object):
                             self.touched_folders.add(touched_folder)
                         if done.action == Rule.ACTION_MOVE and rule.updateKodi:
                             kodi_update_needed = True
-                        logger.info(u"%s" % done)
+                        logger.info("%s" % done)
                         if self.report_mail:
                             self.report_mail.add_row(done)
                         counters[done.actionName or done.action] += 1
@@ -196,7 +194,8 @@ class AfterDown(object):
                         self.report_mail.add_row(done)
                 except Exception as e:
                     logger.error(
-                        "Errors when trying to communicate with Kodi, you'll have to update your video library manually.")
+                        "Errors when trying to communicate with Kodi, "
+                        "You'll have to update your video library manually.")
                     logger.error(kodi_host)
                     logger.error("%s" % e)
 
@@ -205,6 +204,8 @@ class AfterDown(object):
             self.do_delete_touched_folders()
         if "dropbox" in self.config:
             self.dropbox_sync()
+        if "rssfeed" in self.config:
+            self.get_rssfeed()
 
         summary = "%s" % counters
         logger.info(summary)
@@ -315,7 +316,9 @@ class AfterDown(object):
                 del config["dropbox"]
 
         if "knownfiles" not in config or not config["knownfiles"]:
-            config["knownfiles"] = DEFAULT_KNOWNFILE
+            config["knownfiles"] = ".afterknown"
+        if "rssknown" not in config or not config["rssknown"]:
+            config["rssknown"] = ".afterknown_rss"
         return config
 
     def do_delete_touched_folders(self):
@@ -344,7 +347,7 @@ class AfterDown(object):
             to pass to Transmission
         """
         source_files = dropbox_sync(
-            keyfile=DROPBOX_KEYFILE,
+            keyfile=".afterdown_dropbox_keys.json",
             torrents_folder=self.config['dropbox'].get("start_torrents_on"),
             add_to_transmission=self.config['dropbox'].get("add_torrent_to_transmission"),
             move_downloaded_on=self.config['dropbox'].get('move_them_on'),
@@ -352,22 +355,37 @@ class AfterDown(object):
         if self.report_mail:
             for source_path in source_files:
                 if source_path:  # exclude falsey values
-                    download_result = ApplyResult(action=Rule.ACTION_DOWNLOAD, filepath=source_path)
+                    download_result = ApplyResult(action=Rule.ACTION_DOWNLOAD,
+                                                  filepath=source_path)
                     self.report_mail.add_row(download_result)
+
+    def get_rssfeed(self):
+        rss_config = self.config['rssfeed']
+
+        def add_url(title, url):
+            add_magnet_url(url)
+            download_result = ApplyResult(action=Rule.ACTION_DOWNLOAD,
+                                          filepath=title)
+            self.report_mail.add_row(download_result)
+            self.report_mail.add_row(download_result)
+
+        if rss_config.get('zoogle'):
+            rss_zoogle_sync(rss_url=rss_config['zoogle'],
+                            known_filename=self.config["rssknown"],
+                            add_callback=add_url
+                            )
 
 
 # DONE: keep a list of folder from wich we removed or moved files,
 # and at the end delete them if they are empty
 # DONE: Send mail of the activities
 # DONE: Keep the movie in a separate folder based on the filename without extension
-
-if __name__ == '__main__':
+def main():
     import argparse
 
-    PROJECT_PATH = os.path.dirname(__file__)
-
-    parser = argparse.ArgumentParser("Afterdown",
-                                     description="Sort everything in a folder based on some rules you define")
+    parser = argparse.ArgumentParser(
+        "Afterdown",
+        description="Sort everything in a folder based on some rules you define")
     parser.add_argument("-v", "--version", action="version", version=VERSION)
     parser.add_argument("--debug",
                         help="Run in debug mode, no file moved, no mail sent",
@@ -378,7 +396,8 @@ if __name__ == '__main__':
                         default=False,
                         action="store_true")
     parser.add_argument("-c", "--config",
-                        help="Select the config json file to use (default to rules.json in current folder)",
+                        help="Select the config json file to use"
+                             " (default to rules.json in current folder)",
                         default="rules.json")
     parser.add_argument("--log",
                         help="Specify the log file path (default afterdown.log in current folder)",
@@ -435,3 +454,7 @@ if __name__ == '__main__':
         override_config=override_config,
     )
     sorter.run()
+
+
+if __name__ == '__main__':
+    main()

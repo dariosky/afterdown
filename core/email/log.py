@@ -4,6 +4,7 @@ import smtplib
 from email.mime.text import MIMEText
 from logging.handlers import BufferingHandler
 
+
 # code based on this gist by Viany Sajip: https://gist.github.com/anonymous/1379446
 class BufferedSmtpHandler(BufferingHandler):
     """ This is a memoryhandler buffer, that never flush with big capacity (just to split MB emails)

@@ -347,7 +347,8 @@ class Rule(object):
         return result
 
 
-# LATER: the size rule, ad example moving films if their size is >500M, should move also the subtitles with same name?
+# LATER: the size rule, ad example moving films if their size is >500M,
+#  should move also the subtitles with same name?
 
 class ApplyResult(AttrDict):
     """ The result of an apply action, is derived from a rule, but can have some more property
@@ -371,10 +372,10 @@ class ApplyResult(AttrDict):
     }
 
     def __unicode__(self):
-        result = u"{action}: {filepath}".format(action=self.actionName or self.action,
-                                                filepath=self.filepath)
+        result = "{action}: {filepath}".format(action=self.actionName or self.action,
+                                               filepath=self.filepath)
         if self.action == Rule.ACTION_MOVE:
-            result += u" to: %s" % self.target_filepath
+            result += " to: %s" % self.target_filepath
         return result
 
     @property

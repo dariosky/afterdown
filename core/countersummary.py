@@ -12,7 +12,8 @@ PRETTY_NAMES = {
 class CounterSummary(object):
     """ A class with counter for the various action, that returns a pretty summary line
 
-        The counters key are named with a starting underscore when they are special to keep them first
+        The counters key are named with a starting underscore
+         when they are special to keep them first
      """
 
     def __init__(self):
@@ -38,10 +39,14 @@ class CounterSummary(object):
         summary_tokens = []
         for key in self.special_key_order:
             if key in PRETTY_NAMES:
-                summary_tokens.append(PRETTY_NAMES[key].format(value=self.special_counters[key], name=key))
+                summary_tokens.append(
+                    PRETTY_NAMES[key].format(value=self.special_counters[key], name=key))
             else:
-                summary_tokens.append("{value} {name}".format(value=self.special_counters[key], name=key))
+                summary_tokens.append(
+                    "{value} {name}".format(value=self.special_counters[key], name=key))
         for key in sorted(self.action_counters):
-            summary_tokens.append("{value} {name}".format(value=self.action_counters[key], name=key))
-        summary = ". ".join(filter(lambda x: x, summary_tokens)) or "Nothing new"  # strip empty tokens
+            summary_tokens.append(
+                "{value} {name}".format(value=self.action_counters[key], name=key))
+        summary = ". ".join(
+            filter(lambda x: x, summary_tokens)) or "Nothing new"  # strip empty tokens
         return summary
