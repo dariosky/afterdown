@@ -1,5 +1,7 @@
 from __future__ import print_function
+
 import argparse
+import codecs
 import os
 
 
@@ -37,8 +39,9 @@ class LSCreator(object):
         assert os.path.isfile(self.ls_file), "Can't find ls output file %s" % self.ls_file
 
         # get lines from the ls output
-        lines = [line.strip().decode('utf-8') for line in open(self.ls_file).readlines()]
-        lines = filter(lambda x: x, lines)
+        with codecs.open(self.ls_file, encoding='utf-8') as f:
+            lines = [line.strip() for line in f.readlines()]
+        lines = list(filter(lambda x: x, lines))
 
         # Do a first scan creating folders...
         scan_ls_file(lines, self.destination_folder, only_folders=True)

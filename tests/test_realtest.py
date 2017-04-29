@@ -1,9 +1,12 @@
 # Test to populate the folder to monitor (using create_files_from_ls) run the rules and check the results
 from __future__ import print_function
+
 import os
-from afterdown import AfterDown
-import pytest
 import shutil
+
+import pytest
+
+from afterdown import AfterDown
 from tests.playground.create_files_from_ls import LSCreator
 
 TESTS_PATH = os.path.dirname(__file__)
@@ -60,5 +63,5 @@ def test_realworld(playground_folder):
     # we expect 4 file in the season Person of Interest, all of them containing 'person'
     poi_files = os.listdir(os.path.join(target_folder, 'Serie', 'Person of Interest', 'S04'))
     assert len(poi_files) == 4
-    assert len(filter(lambda x: "person" in os.path.basename(x).lower(), poi_files)) == 4
-
+    files = list(filter(lambda x: "person" in os.path.basename(x).lower(), poi_files))
+    assert len(files) == 4

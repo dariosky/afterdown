@@ -1,9 +1,12 @@
 # Create a folder with unicode chars and test that everything works
 from __future__ import print_function
+
 import os
-from afterdown import AfterDown
-import pytest
 import shutil
+
+import pytest
+
+from afterdown import AfterDown
 from tests.playground.create_files_from_ls import LSCreator
 
 TESTS_PATH = os.path.dirname(__file__)
