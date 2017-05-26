@@ -1,5 +1,6 @@
 import pytest
-from core.rules import Rule
+
+from afterdown.core.rules import Rule
 
 if __name__ == '__main__':
     pytest.main()

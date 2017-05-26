@@ -1,6 +1,6 @@
 import pytest
 
-from core.utils import dependency_resolver, CircularDependencyException
+from afterdown.core.utils import dependency_resolver, CircularDependencyException
 
 
 def test_dependency():

@@ -1,5 +1,6 @@
 import pytest
-from core.season_info import get_episode_infos
+
+from afterdown.core.season_info import get_episode_infos
 
 
 def test_name_examples():

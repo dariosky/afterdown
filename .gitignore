@@ -5,10 +5,15 @@
 .afterknown
 
 # the playground for testing:
-tests/playground/target_folder
-tests/playground/folder_to_monitor
+afterdown/tests/playground/target_folder
+afterdown/tests/playground/folder_to_monitor
 
 # the default rules, used in dev
 /rules.json
 /dev
 .cache
+
+# distribution
+*.egg-info/
+/dist/*
+publish.sh

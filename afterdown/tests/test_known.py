@@ -1,10 +1,13 @@
 # Test to populate the folder to monitor (using create_files_from_ls) run the rules and check the results
 from __future__ import print_function
+
 import os
-from afterdown import AfterDown
-import pytest
 import shutil
-from tests.playground.create_files_from_ls import LSCreator
+
+import pytest
+
+from afterdown.__main__ import AfterDown
+from afterdown.tests.playground.create_files_from_ls import LSCreator
 
 TESTS_PATH = os.path.dirname(__file__)
 PLAYGROUND_FOLDER = os.path.join(TESTS_PATH, "known")

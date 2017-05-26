@@ -1,5 +1,4 @@
-#!/usr/bin/python
-# coding: utf-8
+# coding=utf-8
 from __future__ import print_function, unicode_literals
 
 import datetime
@@ -9,14 +8,14 @@ import logging.handlers
 import os
 import sys
 
-from core.countersummary import CounterSummary
-from core.dropboxsync import dropbox_sync, add_magnet_url
-from core.email.log import BufferedSmtpHandler
-from core.email.mail_report import AfterMailReport
-from core.knownfiles import KnownFiles
-from core.rss import rss_zoogle_sync
-from core.rules import Rule, ApplyResult
-from core.utils import recursive_update, dependency_resolver
+from afterdown.core.countersummary import CounterSummary
+from afterdown.core.dropboxsync import dropbox_sync, add_magnet_url
+from afterdown.core.email.log import BufferedSmtpHandler
+from afterdown.core.email.mail_report import AfterMailReport
+from afterdown.core.knownfiles import KnownFiles
+from afterdown.core.rss import rss_zoogle_sync
+from afterdown.core.rules import Rule, ApplyResult
+from afterdown.core.utils import recursive_update, dependency_resolver
 
 VERSION = "0.9.5"
 FS_ENC = 'UTF-8'
@@ -456,5 +455,7 @@ def main():
     sorter.run()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+
     main()

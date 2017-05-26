@@ -1,6 +1,6 @@
 import os
 
-from core.rss import RssParser
+from afterdown.core.rss import RssParser
 
 
 def test_get_zoogle_feed():

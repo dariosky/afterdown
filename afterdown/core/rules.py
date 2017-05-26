@@ -6,18 +6,17 @@ import random
 import shutil
 from collections import defaultdict
 
+from afterdown.core.utils import guessit_video_type, guessit_video_title
 from subliminal.core import save_subtitles
-
-from core.utils import guessit_video_type, guessit_video_title
 
 try:
     from html import escape
 except ImportError:
     from cgi import escape
 
-from core.constants import OPERATORS_MAP, AttrDict
-from core.matching import try_match_strings
-from core.season_info import get_episode_infos
+from afterdown.core.constants import OPERATORS_MAP, AttrDict
+from afterdown.core.matching import try_match_strings
+from afterdown.core.season_info import get_episode_infos
 
 logger = logging.getLogger("afterdown.rules")
 
