@@ -1,9 +1,11 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='afterdown',
-    version='0.9.5',
-    packages=['afterdown'],
+    version='0.9.8',
+    packages=find_packages(),
+    include_package_data=True,
+
     url='https://github.com/dariosky/afterdown',
     license='GPL2',
     author='Dario Varotto',

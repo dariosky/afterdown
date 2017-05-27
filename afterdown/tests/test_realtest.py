@@ -1,4 +1,5 @@
-# Test to populate the folder to monitor (using create_files_from_ls) run the rules and check the results
+# Test to populate the folder to monitor (using create_files_from_ls)
+# run the rules and check the results
 from __future__ import print_function
 
 import os

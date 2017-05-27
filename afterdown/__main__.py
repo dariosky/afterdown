@@ -17,7 +17,7 @@ from afterdown.core.rss import rss_zoogle_sync
 from afterdown.core.rules import Rule, ApplyResult
 from afterdown.core.utils import recursive_update, dependency_resolver
 
-VERSION = "0.9.5"
+VERSION = "0.9.8"
 FS_ENC = 'UTF-8'
 PROJECT_PATH = os.path.dirname(__file__)
 
@@ -351,6 +351,8 @@ class AfterDown(object):
             add_to_transmission=self.config['dropbox'].get("add_torrent_to_transmission"),
             move_downloaded_on=self.config['dropbox'].get('move_them_on'),
         )
+        if not source_files:
+            return  # nothing to report, maybe an error
         if self.report_mail:
             for source_path in source_files:
                 if source_path:  # exclude falsey values
