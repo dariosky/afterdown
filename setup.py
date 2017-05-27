@@ -5,7 +5,7 @@ setup(
     version='0.9.5',
     packages=['afterdown'],
     url='https://github.com/dariosky/afterdown',
-    license='GPL',
+    license='GPL2',
     author='Dario Varotto',
     author_email='dario.varotto@gmail.com',
     description='Automate the organization of your downloads.',
@@ -22,7 +22,7 @@ setup(
         'Topic :: System :: Software Distribution',
 
         # Pick your license as you wish (should match "license" above)
-        'License :: OSI Approved :: GPL License',
+        'License :: OSI Approved :: GNU General Public License v2 (GPLv2)',
 
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
