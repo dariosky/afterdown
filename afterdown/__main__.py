@@ -4,7 +4,6 @@ from __future__ import print_function, unicode_literals
 import datetime
 import json
 import logging
-import logging.handlers
 import os
 import sys
 
@@ -201,9 +200,9 @@ class AfterDown(object):
         if self.touched_folders and self.deleteEmptyFolders:
             logger.debug("Touched folders %s", self.touched_folders)
             self.do_delete_touched_folders()
-        if "dropbox" in self.config:
+        if "dropbox" in self.config and self.COMMIT:
             self.dropbox_sync()
-        if "rssfeed" in self.config:
+        if "rssfeed" in self.config and self.COMMIT:
             self.get_rssfeed()
 
         summary = "%s" % counters
@@ -221,7 +220,8 @@ class AfterDown(object):
             self.file_logger.close()
 
     def read_config(self):
-        config = json.load(open(self.config_file))  # read the config form json
+        with open(self.config_file) as f:
+            config = json.load(f)  # read the config form json
         if self.override_config:
             config = recursive_update(config, self.override_config)
         config = self.prepare_config(config)  # validate and prepare config
@@ -458,6 +458,6 @@ def main():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    # logging.basicConfig(level=logging.INFO, format="%(message)s")
 
     main()

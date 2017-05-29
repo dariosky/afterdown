@@ -42,7 +42,7 @@ def dropbox_sync(keyfile,
         print('1. Go to: ' + authorize_url)
         print('2. Click "Allow" (you might have to log in first)')
         print('3. Copy the authorization code.')
-        code = input("Enter the authorization code here: ").strip()
+        code = input("Enter the Dropbox authorization code here: ").strip()
         access_token, user_id = flow.finish(code)
         dropbox_config["access_token"] = access_token
         logger.info("Storing access_token to Dropbox account")
