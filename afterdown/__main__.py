@@ -368,7 +368,6 @@ class AfterDown(object):
             download_result = ApplyResult(action=Rule.ACTION_DOWNLOAD,
                                           filepath=title)
             self.report_mail.add_row(download_result)
-            self.report_mail.add_row(download_result)
 
         if rss_config.get('zoogle'):
             rss_zoogle_sync(rss_url=rss_config['zoogle'],
