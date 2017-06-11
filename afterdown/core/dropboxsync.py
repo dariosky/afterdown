@@ -61,12 +61,13 @@ def dropbox_sync(keyfile,
             for content in filtered(folder_meta):
                 logger.info(
                     "%s %s %s" % (content['path'], "by", content["modifier"]["display_name"]))
-                results.append(
-                    process_dropbox_file(client, content,
-                                         add_to_transmission,
-                                         move_downloaded_on,
-                                         )
-                )
+                if add_to_transmission:
+                    results.append(
+                        process_dropbox_file(client, content,
+                                             add_to_transmission,
+                                             move_downloaded_on,
+                                             )
+                    )
     except dropbox.rest.ErrorResponse as e:
         logger.error(e)
     return results
@@ -84,27 +85,26 @@ def process_dropbox_file(dropbox_client, filemeta,
                          ):
     import dropbox
 
-    if add_to_transmission:
-        # download the file to a temporary folder, then add it to transmission
-        source_path = filemeta['path']
-        with tempfile.NamedTemporaryFile(prefix="afterdown", suffix="temptorrent",
-                                         delete=False) as temp:
-            # print "Get from torrent to tempfile %s" % temp.name
-            with dropbox_client.get_file(source_path) as f:
-                content = f.read()
+    # download the file to a temporary folder, then add it to transmission
+    source_path = filemeta['path']
+    ext = os.path.splitext(source_path)[-1]
+    got_error = False
+
+    with dropbox_client.get_file(source_path) as f:
+        content = f.read()
+        if ext == ".magnet":
+            logger.debug("Processing magnet file %s" % source_path)
+            for line in content.split():
+                line = line.strip().decode('utf-8')
+                if line:  # skip empty lines
+                    if add_magnet_url(line) is False:
+                        got_error = True
+        else:
+            # process the torrent
+            with tempfile.NamedTemporaryFile(prefix="afterdown", suffix="temptorrent") as temp:
+                # print "Get from torrent to tempfile %s" % temp.name
+
                 temp.write(content)
-        try:
-            got_error = False
-            ext = os.path.splitext(source_path)[-1]
-            if ext == ".magnet":
-                logger.debug("Processing magnet file %s" % source_path)
-                for line in content.split():
-                    line = line.strip()
-                    if line:  # skip empty lines
-                        if add_magnet_url(line) is False:
-                            got_error = True
-            else:
-                # process the torrent
                 try:
                     check_output(
                         ["transmission-remote", "-a", temp.name, "--no-start-paused"]
@@ -117,8 +117,16 @@ def process_dropbox_file(dropbox_client, filemeta,
                     )
                     got_error = True
 
+        if got_error:
+            logger.error(
+                "Error running transmission-remote on file {path}".format(
+                    path=source_path,
+                )
+            )
+            source_path = None  # when erroring return None
+        else:
             dropbox_move_target = move_downloaded_on
-            if dropbox_move_target and not got_error:
+            if dropbox_move_target:
                 filename = os.path.basename(source_path)
                 target_path = posixpath.join(dropbox_move_target, filename)
                 try:
@@ -128,14 +136,7 @@ def process_dropbox_file(dropbox_client, filemeta,
                         "Error moving dropbox file from {source} to {target}.\n{error_message}".format(
                             source=source_path, target=target_path, error_message=e
                         ))
-        except:
-            logger.error(
-                "Error running transmission-remote on file {path}".format(path=source_path)
-            )
-            source_path = None  # when erroring return None
-        finally:
-            os.unlink(temp.name)
-        return source_path
+    return source_path
 
 
 def add_magnet_url(url):

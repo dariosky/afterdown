@@ -1,6 +1,7 @@
 # coding=utf-8
 from __future__ import print_function, unicode_literals
 
+import argparse
 import datetime
 import json
 import logging
@@ -16,7 +17,7 @@ from afterdown.core.rss import rss_zoogle_sync
 from afterdown.core.rules import Rule, ApplyResult
 from afterdown.core.utils import recursive_update, dependency_resolver
 
-VERSION = "0.9.8"
+VERSION = "0.9.9"
 FS_ENC = 'UTF-8'
 PROJECT_PATH = os.path.dirname(__file__)
 
@@ -381,8 +382,6 @@ class AfterDown(object):
 # DONE: Send mail of the activities
 # DONE: Keep the movie in a separate folder based on the filename without extension
 def main():
-    import argparse
-
     parser = argparse.ArgumentParser(
         "Afterdown",
         description="Sort everything in a folder based on some rules you define")
