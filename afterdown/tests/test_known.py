@@ -16,8 +16,8 @@ source_folder = "source"
 target_folder = None
 
 
-def getSorter():
-    config_file = 'rules.json'
+def getSorter(config_filename = 'rules.json'):
+    config_file = config_filename
     sorter = AfterDown(
         config_file=config_file,
         log_path=None,
