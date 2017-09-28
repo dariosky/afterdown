@@ -62,7 +62,8 @@ class AfterDown(object):
         self.logger = self.get_logger(log_path=log_path, VERBOSE=VERBOSE)
         assert config_file, "Please provide me a config file."
         if not os.path.isfile(config_file):
-            raise Exception("Config file %s not found." % config_file)
+            raise Exception("Config file %s not found." %
+                            os.path.realpath(config_file))
         self.config_file = config_file
         self.config = None
         self.deleteEmptyFolders = True

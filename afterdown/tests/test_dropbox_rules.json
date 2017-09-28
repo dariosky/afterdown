@@ -1,0 +1,10 @@
+{
+  "source": "source_Folder",
+  "target": "target_folder",
+  "dropbox": {
+    "start_torrents_on": "/torrents",
+    "add_torrent_to_transmission": true,
+    "move_them_on": "/torrents/test"
+  },
+  "rules": []
+}

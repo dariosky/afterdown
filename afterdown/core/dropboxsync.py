@@ -30,6 +30,7 @@ def dropbox_sync(keyfile,
         logger.error(
             "To sync with Dropbox you need a %s file with app_key and app_secret" % keyfile
         )
+        logger.info("Put it in the current folder: '%s'" % os.path.realpath(os.path.curdir))
         return
     dropbox_config = json.load(open(keyfile, "r"))
     if "app_key" not in dropbox_config or "app_secret" not in dropbox_config:
