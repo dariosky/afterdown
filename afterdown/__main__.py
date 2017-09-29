@@ -17,7 +17,7 @@ from afterdown.core.rss import rss_zoogle_sync
 from afterdown.core.rules import Rule, ApplyResult
 from afterdown.core.utils import recursive_update, dependency_resolver
 
-VERSION = "0.9.9"
+VERSION = "0.9.91"
 FS_ENC = 'UTF-8'
 PROJECT_PATH = os.path.dirname(__file__)
 
