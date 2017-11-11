@@ -1,8 +1,10 @@
 from setuptools import setup, find_packages
 
+from afterdown.__main__ import VERSION
+
 setup(
     name='afterdown',
-    version='0.9.91',
+    version=VERSION,
     packages=find_packages(),
     include_package_data=True,
 

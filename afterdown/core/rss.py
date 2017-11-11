@@ -27,9 +27,11 @@ class RssParser:
                 line += '\n'
                 f.write(line)
 
-    def get_zoogle_feed(self, url=None, xml_filename=None):
+    def get_zoogle_feed(self, url=None, xml_filename=None,
+                        forget_old_urls=False):
         """ Connect to url to retrieve a rss feed file
             Then download all the items available
+            :type forget_old_urls: bool - should we trust Zooqle? something gone should not return
         """
         zooglens = '{https://zooqle.com/xmlns/0.1/}'
 
@@ -63,7 +65,10 @@ class RssParser:
                                                                  magnet=url))
                 # DONE: Zoogle choose the most seeded, we should avoid redownload
                 results[title] = url
-            self.memory = set(results.keys())  # update memory
+            if forget_old_urls:
+                self.memory = set(results.keys())  # replace memory
+            else:
+                self.memory |= set(results.keys())  # add to memory
         return results
 
 
