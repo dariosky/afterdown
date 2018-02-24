@@ -63,7 +63,8 @@ def test_season_memory_feed():
 
 
 class TestZooqleMatcher(object):
-    def compare(self, title, expectation):
+    @staticmethod
+    def compare(title, expectation):
         match = zooqle_title_parser(title)
         for k, v in expectation.items():
             assert match[k] == v, "Field %s mismatch" % k

@@ -26,7 +26,7 @@ class Memory(object):
     def __init__(self):
         self.exact = set()  # list of exact matches
         # series[serie][season] = {episode:x}
-        self.series = defaultdict(lambda: defaultdict(lambda: dict()))
+        self.series = defaultdict(lambda: defaultdict(dict))
 
     def add(self, title):
         parsed = zooqle_title_parser(title)
@@ -77,7 +77,7 @@ class Memory(object):
                 if known_serie is True:
                     self.exact.append(known_serie)  # backward compatibility
                 else:
-                    self.series[known_serie_name] = defaultdict(lambda: dict())
+                    self.series[known_serie_name] = defaultdict(dict)
                     for season, known_season in known_serie.items():
                         self.series[known_serie_name][int(season)] = known_season
 
