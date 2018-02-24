@@ -13,7 +13,7 @@ from afterdown.core.dropboxsync import dropbox_sync, add_magnet_url
 from afterdown.core.email.log import BufferedSmtpHandler
 from afterdown.core.email.mail_report import AfterMailReport
 from afterdown.core.knownfiles import KnownFiles
-from afterdown.core.rss import rss_zoogle_sync
+from afterdown.core.rss import rss_zooqle_sync
 from afterdown.core.rules import Rule, ApplyResult
 from afterdown.core.utils import recursive_update, dependency_resolver
 
@@ -31,12 +31,11 @@ print(("Copyright (C) 2015-%s  Dario Varotto\n" % datetime.date.today().year))
 
 
 class AfterDown(object):
-    def get_logger(self, log_path=None, VERBOSE=False):
+    def get_logger(self, log_path=None):
         l = logging.getLogger("afterdown")
-        l.setLevel(logging.DEBUG)
         # log events to console
         console_handler = logging.StreamHandler(sys.stdout)
-        l.setLevel(logging.DEBUG if VERBOSE else logging.INFO)
+        l.setLevel(logging.DEBUG if self.VERBOSE else logging.INFO)
         l.addHandler(console_handler)
         # if log_path is defined log also there
         if log_path:
@@ -59,7 +58,7 @@ class AfterDown(object):
         self.DEBUG = DEBUG
         self.log_path = log_path
         self.file_logger = None
-        self.logger = self.get_logger(log_path=log_path, VERBOSE=VERBOSE)
+        self.logger = self.get_logger(log_path=log_path)
         assert config_file, "Please provide me a config file."
         if not os.path.isfile(config_file):
             raise Exception("Config file %s not found." %
@@ -76,135 +75,139 @@ class AfterDown(object):
         if self.config is None:
             self.config = self.read_config()
         self.knownfiles = KnownFiles(self.config["knownfiles"])
-
-        root = os.path.abspath(self.config['source'])
-        assert os.path.isdir(root), "Cannot find the defined source %s" % root
-
         counters = self.counters
         kodi_update_needed = False
-
         logger = self.logger
-        # on walk and on file operations use encoded binary strings
-        for foldername, dirnames, filenames in os.walk(root.encode('utf-8'), followlinks=True):
-            foldername = foldername.decode(FS_ENC)
-            logger.debug(foldername[len(root) + 1:] or "/")
-            for filename in filenames:
-                filename = filename.decode(FS_ENC)
 
-                counters['_tot'] += 1
-                fullpath = os.path.join(foldername, filename)
-                filepath = os.path.join(foldername[len(root) + 1:], filename)
-                # each file found is a possible candidate...
-                candidate = dict(
-                    filepath=filepath,  # with a path relative to the source
-                    fullpath=fullpath,  # the fullpath, needed if the rule wants to access the file
-                    # other eventual things will be added from the rules when needed...
-                    # possible candidates are: extension, filesize, xmp tags or things like that
-                )
-                matches = []
-                for rule in self.config["rules"]:
-                    confidence = rule.match(candidate)
-                    if confidence is not False:
-                        matches.append((confidence, rule))
-                if matches:
-                    # print "It matches %d rules: %s" % (len(matches), matches)
-                    # sort by confidence
-                    rules_by_confidence = {}
-                    max_confidence = 0
-                    for confidence, rule in matches:
-                        # group by confidence
-                        rules = rules_by_confidence.get(confidence, [])
-                        rules.append(rule)
-                        rules_by_confidence[confidence] = rules
-                        if confidence > max_confidence:
-                            max_confidence = confidence
+        if self.COMMIT:
+            root = os.path.abspath(self.config['source'])
+            assert os.path.isdir(root), "Cannot find the defined source %s" % root
 
-                    # if there is only one rule with top confidence apply it
-                    if len(rules_by_confidence[max_confidence]) == 1:
-                        rule = rules_by_confidence[max_confidence][0]
-                        done = rule.apply(candidate, commit=self.COMMIT)
-                        if done.action in (Rule.ACTION_DELETE, Rule.ACTION_MOVE):
-                            target_file = done.filepath
-                            touched_folder = os.path.dirname(target_file)
-                            self.touched_folders.add(touched_folder)
-                        if done.action == Rule.ACTION_MOVE and rule.updateKodi:
-                            kodi_update_needed = True
-                        logger.info("%s" % done)
-                        if self.report_mail:
-                            self.report_mail.add_row(done)
-                        counters[done.actionName or done.action] += 1
-                    else:
-                        logger.warning("UNSURE: %s matches %s" % (filepath, matches))
-                        if not self.knownfiles.is_known(filepath):
-                            # warn for unsure files only when they are new
-                            counters['_unsure_new'] += 1
-                            if self.report_mail:
-                                done = ApplyResult(action=Rule.ACTION_UNSURE, filepath=filepath)
-                                # add some forced token to the row
-                                # (the rule doesn't know how may rules apply)
-                                self.report_mail.add_row(
-                                    done,
-                                    tokens=done.tokens + [
-                                        "%d matching rules" % len(
-                                            rules_by_confidence[max_confidence])])
-                        else:
-                            logger.debug("Unsure file %s is not new" % filepath)
-                            counters['_unsure_old'] += 1
-                else:
-                    logger.info("%s does not match" % filepath)
-                    if not self.knownfiles.is_known(filepath):
-                        counters['_unknown_new'] += 1
-                        # warn for unknow files only when they are new
-                        if self.report_mail:
-                            done = ApplyResult(action=Rule.ACTION_UNKNOWN, filepath=filepath)
-                            self.report_mail.add_row(done)
-                    else:
-                        logger.debug("Unknown file %s is not new" % filepath)
-                        counters['_unknown_old'] += 1
+            # on walk and on file operations use encoded binary strings
 
-        # LATER: Check the file is not in use
-        if kodi_update_needed and self.config.get("kodi", {}).get('requestUpdate',
-                                                                  False) and self.COMMIT:
-            if not requests:
-                logger.error("Requests is needed to syncronize with Kodi.")
-                logger.error("Install it with 'pip install requests'.")
-            else:
-                kodi_host = self.config['kodi'].get('host', 'localhost')
-                logger.info(
-                    "Something changed on target folder, asking Kodi to update video library.")
-                try:
-                    response = requests.post(
-                        'http://{kodi_host}/jsonrpc'.format(
-                            kodi_host=kodi_host
-                        ),
-                        headers={"Content-Type": "application/json"},
-                        data=json.dumps(dict(
-                            jsonrpc="2.0",
-                            method="VideoLibrary.Scan",
-                            params={},
-                            id=1
-                        )),
+            for foldername, dirnames, filenames in os.walk(root.encode('utf-8'),
+                                                           followlinks=True):
+                foldername = foldername.decode(FS_ENC)
+                logger.debug(foldername[len(root) + 1:] or "/")
+                for filename in filenames:
+                    filename = filename.decode(FS_ENC)
+
+                    counters['_tot'] += 1
+                    fullpath = os.path.join(foldername, filename)
+                    filepath = os.path.join(foldername[len(root) + 1:], filename)
+                    # each file found is a possible candidate...
+                    candidate = dict(
+                        filepath=filepath,  # with a path relative to the source
+                        fullpath=fullpath,
+                        # the fullpath, needed if the rule wants to access the file
+                        # other eventual things will be added from the rules when needed...
+                        # possible candidates are: extension, filesize, xmp tags or things like that
                     )
-                    if response.status_code != 200 or response.json().get('result') != 'OK':
-                        logger.error(
-                            "Update Kody library failed, check jsonrpc is enabled."
-                        )
-                    if self.report_mail:
-                        done = ApplyResult(action=Rule.ACTION_KODI_REFRESH, filepath="")
-                        self.report_mail.add_row(done)
-                except Exception as e:
-                    logger.error(
-                        "Errors when trying to communicate with Kodi, "
-                        "You'll have to update your video library manually.")
-                    logger.error(kodi_host)
-                    logger.error("%s" % e)
+                    matches = []
+                    for rule in self.config["rules"]:
+                        confidence = rule.match(candidate)
+                        if confidence is not False:
+                            matches.append((confidence, rule))
+                    if matches:
+                        # print "It matches %d rules: %s" % (len(matches), matches)
+                        # sort by confidence
+                        rules_by_confidence = {}
+                        max_confidence = 0
+                        for confidence, rule in matches:
+                            # group by confidence
+                            rules = rules_by_confidence.get(confidence, [])
+                            rules.append(rule)
+                            rules_by_confidence[confidence] = rules
+                            if confidence > max_confidence:
+                                max_confidence = confidence
 
-        if self.touched_folders and self.deleteEmptyFolders:
-            logger.debug("Touched folders %s", self.touched_folders)
-            self.do_delete_touched_folders()
+                        # if there is only one rule with top confidence apply it
+                        if len(rules_by_confidence[max_confidence]) == 1:
+                            rule = rules_by_confidence[max_confidence][0]
+                            done = rule.apply(candidate, commit=self.COMMIT)
+                            if done.action in (Rule.ACTION_DELETE, Rule.ACTION_MOVE):
+                                target_file = done.filepath
+                                touched_folder = os.path.dirname(target_file)
+                                self.touched_folders.add(touched_folder)
+                            if done.action == Rule.ACTION_MOVE and rule.updateKodi:
+                                kodi_update_needed = True
+                            logger.info("%s" % done)
+                            if self.report_mail:
+                                self.report_mail.add_row(done)
+                            counters[done.actionName or done.action] += 1
+                        else:
+                            logger.warning("UNSURE: %s matches %s" % (filepath, matches))
+                            if not self.knownfiles.is_known(filepath):
+                                # warn for unsure files only when they are new
+                                counters['_unsure_new'] += 1
+                                if self.report_mail:
+                                    done = ApplyResult(action=Rule.ACTION_UNSURE, filepath=filepath)
+                                    # add some forced token to the row
+                                    # (the rule doesn't know how may rules apply)
+                                    self.report_mail.add_row(
+                                        done,
+                                        tokens=done.tokens + [
+                                            "%d matching rules" % len(
+                                                rules_by_confidence[max_confidence])])
+                            else:
+                                logger.debug("Unsure file %s is not new" % filepath)
+                                counters['_unsure_old'] += 1
+                    else:
+                        logger.info("%s does not match" % filepath)
+                        if not self.knownfiles.is_known(filepath):
+                            counters['_unknown_new'] += 1
+                            # warn for unknow files only when they are new
+                            if self.report_mail:
+                                done = ApplyResult(action=Rule.ACTION_UNKNOWN, filepath=filepath)
+                                self.report_mail.add_row(done)
+                        else:
+                            logger.debug("Unknown file %s is not new" % filepath)
+                            counters['_unknown_old'] += 1
+
+            # LATER: Check the file is not in use
+            if kodi_update_needed \
+                    and self.config.get("kodi", {}).get('requestUpdate', False) \
+                    and self.COMMIT:
+                if not requests:
+                    logger.error("Requests is needed to syncronize with Kodi.")
+                    logger.error("Install it with 'pip install requests'.")
+                else:
+                    kodi_host = self.config['kodi'].get('host', 'localhost')
+                    logger.info(
+                        "Something changed on target folder, asking Kodi to update video library.")
+                    try:
+                        response = requests.post(
+                            'http://{kodi_host}/jsonrpc'.format(
+                                kodi_host=kodi_host
+                            ),
+                            headers={"Content-Type": "application/json"},
+                            data=json.dumps(dict(
+                                jsonrpc="2.0",
+                                method="VideoLibrary.Scan",
+                                params={},
+                                id=1
+                            )),
+                        )
+                        if response.status_code != 200 or response.json().get('result') != 'OK':
+                            logger.error(
+                                "Update Kody library failed, check jsonrpc is enabled."
+                            )
+                        if self.report_mail:
+                            done = ApplyResult(action=Rule.ACTION_KODI_REFRESH, filepath="")
+                            self.report_mail.add_row(done)
+                    except Exception as e:
+                        logger.error(
+                            "Errors when trying to communicate with Kodi, "
+                            "You'll have to update your video library manually.")
+                        logger.error(kodi_host)
+                        logger.error("%s" % e)
+
+            if self.touched_folders and self.deleteEmptyFolders:
+                logger.debug("Touched folders %s", self.touched_folders)
+                self.do_delete_touched_folders()
         if "dropbox" in self.config and self.COMMIT:
             self.dropbox_sync()
-        if "rssfeed" in self.config and self.COMMIT:
+        if "rssfeed" in self.config:
             self.get_rssfeed()
 
         summary = "%s" % counters
@@ -319,7 +322,7 @@ class AfterDown(object):
         if "knownfiles" not in config or not config["knownfiles"]:
             config["knownfiles"] = ".afterknown"
         if "rssknown" not in config or not config["rssknown"]:
-            config["rssknown"] = ".afterknown_rss"
+            config["rssknown"] = ".afterknown_rss.json"
         return config
 
     def do_delete_touched_folders(self):
@@ -366,13 +369,16 @@ class AfterDown(object):
         rss_config = self.config['rssfeed']
 
         def add_url(title, url):
-            add_magnet_url(url)
-            download_result = ApplyResult(action=Rule.ACTION_DOWNLOAD,
-                                          filepath=title)
-            self.report_mail.add_row(download_result)
+            if self.COMMIT:
+                add_magnet_url(url)
+                download_result = ApplyResult(action=Rule.ACTION_DOWNLOAD,
+                                              filepath=title)
+                self.report_mail.add_row(download_result)
+            else:
+                self.logger.debug("Not adding %s in DEBUG mode" % title)
 
-        if rss_config.get('zoogle'):
-            rss_zoogle_sync(rss_url=rss_config['zoogle'],
+        if rss_config.get('zooqle'):
+            rss_zooqle_sync(rss_url=rss_config['zooqle'],
                             known_filename=self.config["rssknown"],
                             add_callback=add_url
                             )
@@ -457,6 +463,4 @@ def main():
 
 
 if __name__ == "__main__":
-    # logging.basicConfig(level=logging.INFO, format="%(message)s")
-
     main()

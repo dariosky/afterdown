@@ -3,6 +3,7 @@
 /.idea
 .afterdown_dropbox_keys.json
 .afterknown
+/aftersettings
 
 # the playground for testing:
 afterdown/tests/playground/target_folder

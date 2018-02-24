@@ -26,4 +26,4 @@ def get_episode_infos(filepath):
             else:
                 results = (None, match.group(1))  # just the episode name
             return tuple(map(lambda x: x and x.zfill(2) or x, results))
-    return (None, None)
+    return None, None
