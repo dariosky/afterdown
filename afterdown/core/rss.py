@@ -86,7 +86,8 @@ class Memory(object):
         if self.exact:
             obj['_exact'] = list(self.exact)
         dump = json.dumps(obj,
-                          sort_keys=True, indent=4, separators=(',', ': '))
+                          sort_keys=True, indent=2,
+                          separators=(',', ': '))
         with open(known_filename, 'w', encoding='utf-8') as f:
             f.write(dump)
 
@@ -122,8 +123,8 @@ class RssParser:
         if not isinstance(rss_string, six.binary_type):
             rss_string = rss_string.encode('utf8')  # xml should be binary
         xml = ElementTree.fromstring(rss_string)
-        items = list(xml.iter('item'))
-        logger.debug("Found %d elements" % len(items))
+        items = list(xml.iter('item'))[::-1]  # get the feed from the oldest
+        logger.debug("%d elements in the RSS feed" % len(items))
         if not items:
             logger.warning("There are no items in the RSS feed")
         else:
@@ -134,7 +135,6 @@ class RssParser:
                     logger.debug("{title} in the RSS is known: {known}".format(
                         title=title, known=known
                     ))
-                    results[title] = None  # I'll put it as known, but without the url
                     continue
                 url = item.find(zooqlens + 'magnetURI').text.strip()
                 logger.debug('RSS give {title}: {magnet}'.format(title=title,

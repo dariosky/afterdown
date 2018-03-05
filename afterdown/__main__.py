@@ -373,7 +373,8 @@ class AfterDown(object):
                 add_magnet_url(url)
                 download_result = ApplyResult(action=Rule.ACTION_DOWNLOAD,
                                               filepath=title)
-                self.report_mail.add_row(download_result)
+                if self.report_mail:
+                    self.report_mail.add_row(download_result)
             else:
                 self.logger.debug("Not adding %s in DEBUG mode" % title)
 
