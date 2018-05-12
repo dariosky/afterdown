@@ -17,7 +17,7 @@ from afterdown.core.rss import rss_zooqle_sync
 from afterdown.core.rules import Rule, ApplyResult
 from afterdown.core.utils import recursive_update, dependency_resolver
 
-VERSION = "0.9.92"
+VERSION = "0.9.93"
 FS_ENC = 'UTF-8'
 PROJECT_PATH = os.path.dirname(__file__)
 
@@ -166,8 +166,8 @@ class AfterDown(object):
 
             # LATER: Check the file is not in use
             if kodi_update_needed \
-                    and self.config.get("kodi", {}).get('requestUpdate', False) \
-                    and self.COMMIT:
+                and self.config.get("kodi", {}).get('requestUpdate', False) \
+                and self.COMMIT:
                 if not requests:
                     logger.error("Requests is needed to syncronize with Kodi.")
                     logger.error("Install it with 'pip install requests'.")
@@ -315,7 +315,7 @@ class AfterDown(object):
 
         if "dropbox" in config:
             if not isinstance(config["dropbox"], dict) \
-                    or "start_torrents_on" not in config["dropbox"]:
+                or "start_torrents_on" not in config["dropbox"]:
                 # if we don't need Dropbox, we can drop it's config
                 del config["dropbox"]
 
@@ -334,8 +334,8 @@ class AfterDown(object):
             folder = self.touched_folders.pop()
             folder_path = os.path.join(root, folder)
             if folder and os.path.isdir(folder_path) \
-                    and folder_path.startswith(root) and folder_path != root \
-                    and not os.listdir(folder_path):
+                and folder_path.startswith(root) and folder_path != root \
+                and not os.listdir(folder_path):
                 try:
                     os.rmdir(folder_path)
                     self.logger.info("Deleted empty folder: %s" % folder_path)
